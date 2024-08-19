@@ -8,6 +8,7 @@ services:
       - .env.development
     volumes:
       - .:/app
+      - /app/node_modules
     command: npm run dev
 
   test:
@@ -16,18 +17,17 @@ services:
       - NODE_ENV=test
     volumes:
       - .:/app
+      - /app/node_modules
     command: npm test
 
   cypress:
-    image: cypress/included:13.13.1
+    build: .
     depends_on:
       - app
     volumes:
       - .:/app
+      - /app/node_modules
     working_dir: /app
     environment:
       - CYPRESS_BASE_URL=http://app:3000
-    entrypoint: npx cypress run --headless
-
-volumes:
-  node_modules:
+    command: npx cypress run --headless

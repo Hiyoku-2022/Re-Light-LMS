@@ -4,6 +4,12 @@ FROM node:20-alpine
 # 作業ディレクトリを作成
 WORKDIR /app
 
+# 必要なパッケージをインストール
+RUN apk add --no-cache bash xvfb
+
+# TypeScriptとts-nodeをグローバルにインストール
+RUN npm install -g typescript ts-node
+
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
