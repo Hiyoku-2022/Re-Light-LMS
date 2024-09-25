@@ -45,9 +45,10 @@ jobs:
 
       - name: Authenticate with GCP
         run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | gcloud auth activate-service-account --key-file=-
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/keyfile.json
+          gcloud auth activate-service-account --key-file=/tmp/keyfile.json
           gcloud --quiet config set project ${{ secrets.GCP_PROJECT_ID }}
-
+          
       - name: Authenticate Docker with GCP
         run: |
           gcloud auth configure-docker asia-northeast2-docker.pkg.dev
