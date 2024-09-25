@@ -1,9 +1,9 @@
-import Hello from '../components/Hello';
+import {TopPage} from '../components/top-page';
 
 export default function Home() {
   return (
     <div>
-      <Hello />
+      <TopPage />
     </div>
   );
 }
