@@ -43,12 +43,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          export_default_credentials: true
+      - name: Authenticate with GCP
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | gcloud auth activate-service-account --key-file=-
+          gcloud --quiet config set project ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Authenticate Docker with GCP
         run: |
