@@ -48,18 +48,18 @@ jobs:
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 --decode > /tmp/keyfile.json
           gcloud auth activate-service-account --key-file=/tmp/keyfile.json
           gcloud --quiet config set project ${{ secrets.GCP_PROJECT_ID }}
-          
+
       - name: Authenticate Docker with GCP
         run: |
           gcloud auth configure-docker asia-northeast2-docker.pkg.dev
 
       - name: Build Docker image
         run: |
-          docker build --platform linux/amd64 --build-arg ENV_FILE=.env.staging -t asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging .
+          docker build --platform linux/amd64 --build-arg ENV_FILE=.env.staging -t asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging:latest .
 
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging
+          docker push asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging:latest
 
       - name: Deploy to Cloud Run
         run: |
