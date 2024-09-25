@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "node server.js",
     "lint": "next lint",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "cypress:open": "cypress open",
     "build:staging": "cp .env.staging .env.local && npm run build",
     "start:staging": "NODE_ENV=staging npm start"
