@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
 
-export function Dashboard() {
+export function CompanyDashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow">
@@ -123,4 +123,4 @@ function MenuIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-export default Dashboard;
+export default CompanyDashboard;

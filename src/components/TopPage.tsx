@@ -7,10 +7,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { SignupForm } from "@/components/forms/UserSignupForm";
 import { UserLoginForm } from "@/components/forms/UserLoginForm";
-import { CompanyPreSignUpForm } from "@/components/forms/CompanyPreSignUpForm";
+import { CompanySignUpForm } from "@/components/forms/CompanySignUpForm";
 import { CompanyLoginForm } from "@/components/forms/CompanyLoginForm";
 import { PasswordResetRequestForm } from "@/components/forms/PasswordResetRequestForm";
-import { CompanyCodeRequestForm } from "@/components/forms/CompanyCodeRequestForm";
 
 export function TopPage() {
   const [showModal, setShowModal] = useState(false);
@@ -58,14 +57,14 @@ export function TopPage() {
             ) : currentForm === "login" ? (
               <UserLoginForm onSwitchForm={(formType) => setCurrentForm(formType)} />
             ) : currentForm === "companyPreSignup" ? (
-              <CompanyPreSignUpForm onSwitchForm={(formType) => setCurrentForm(formType)} />
+              <CompanySignUpForm onSwitchForm={(formType) => setCurrentForm(formType)} />
             ) : currentForm === "companyLogin" ? (
               <CompanyLoginForm onSwitchForm={(formType) => setCurrentForm(formType)} />
             ) : currentForm === "passwordReset" ? (
               <PasswordResetRequestForm onSwitchForm={(formType) => setCurrentForm(formType)} />
             ) : (
-              <CompanyCodeRequestForm />
-            )}          
+              <SignupForm onSwitchForm={(formType) => setCurrentForm(formType)} /> // デフォルトでサインアップフォームを表示
+            )}
           </div>
         </div>
       )}

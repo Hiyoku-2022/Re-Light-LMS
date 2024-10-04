@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // useRouterをインポート
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/firebase"; // Firebase Auth をインポート
+import { auth } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface UserLoginFormProps {
   onSwitchForm: (formType: "signup" | "passwordReset" | "companyCodeRequest") => void;
@@ -17,25 +18,81 @@ interface UserLoginFormProps {
 export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [companyCode, setCompanyCode] = useState("");
-  const [isCompanyUser, setIsCompanyUser] = useState(false);
-  const router = useRouter(); // useRouterフックを初期化
+  const router = useRouter();
 
   const handleLogin = async () => {
     try {
-      // Firebase Authentication を使用してユーザーのログインを試みる
       await signInWithEmailAndPassword(auth, email, password);
-      alert("ログインに成功しました！");
-      // ログイン成功時にダッシュボードページにリダイレクト
-      router.push("/dashboard");
-    } catch (error) {
+
+      toast.success("ログインに成功しました！", {
+        position: "top-center",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: false,
+        progress: undefined,
+        style: {
+          fontSize: "14px",
+          maxWidth: "300px",
+          padding: "10px",
+          margin: "0 auto",
+          background: "#B0E57C",
+          textAlign: "center",
+          borderRadius: "8px",
+        },
+      });
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+    } catch (error: any) {
       console.error("ログインエラー:", error);
-      alert("ログインに失敗しました。もう一度お試しください。");
+
+      // エラーコードに応じて表示するメッセージを変更
+      let errorMessage = "ログインに失敗しました。もう一度お試しください。";
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "ユーザーが見つかりません。アカウントをお持ちでない場合は、サインアップしてください。";
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage = "パスワードが正しくありません。再度お試しください。";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "無効なメールアドレスです。正しい形式で入力してください。";
+      }
+
+      toast.error(
+        <div>
+          {errorMessage.split("。").map((msg, index) => (
+            <p key={index} style={{ margin: 0 }}>
+              {msg}
+              {index !== errorMessage.split("。").length - 1 && "。"}
+            </p>
+          ))}
+        </div>,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: false,
+          progress: undefined,
+          style: {
+            fontSize: "14px",
+            maxWidth: "300px",
+            padding: "10px",
+            margin: "0 auto",
+            background: "#ffcccb",
+            textAlign: "center",
+            borderRadius: "8px",
+          },
+        }
+      );
     }
   };
 
   return (
-    <div className="w-full max-w-md p-4 space-y-3 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[80vh]">
+    <div className="w-full max-w-md p-4 space-y-3 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[80vh] mx-auto">
+      <ToastContainer /> {/* トースト通知を表示 */}
       <CardHeader>
         <CardTitle className="text-center text-xl font-semibold">ユーザーログイン</CardTitle>
       </CardHeader>
@@ -61,38 +118,6 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
             className="h-10"
           />
         </div>
-        <div className="flex items-center space-x-2 mt-4">
-          <Checkbox
-            id="company-user"
-            checked={isCompanyUser}
-            onCheckedChange={(checked) => setIsCompanyUser(!!checked)}
-            style={{ backgroundColor: "#B0E57C" }}
-          />
-          <Label htmlFor="company-user">企業ユーザー</Label>
-        </div>
-        {isCompanyUser && (
-          <div className="space-y-1">
-            <Label htmlFor="company-code">企業コード</Label>
-            <Input
-              id="company-code"
-              value={companyCode}
-              onChange={(e) => setCompanyCode(e.target.value)}
-              placeholder="企業コード"
-              className="h-10"
-            />
-          </div>
-        )}
-        {isCompanyUser && (
-          <p className="text-left text-sm text-muted-foreground mt-2">
-            企業コードを忘れた方は{" "}
-            <span
-              className="text-blue-600 cursor-pointer"
-              onClick={() => onSwitchForm("companyCodeRequest")}
-            >
-              こちら
-            </span>
-          </p>
-        )}
       </CardContent>
       <CardFooter>
         <Button className="w-full bg-[#B0E57C] text-white h-10 mt-4" onClick={handleLogin}>
