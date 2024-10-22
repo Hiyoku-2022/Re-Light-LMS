@@ -1,126 +1,143 @@
+"use client"; 
+
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
+import Link from "next/link";
+import LearningProgressCalendar from "@/components/LearningProgressCalendar";
+import { db } from "@/firebase"; // Firebase インスタンスのインポート
+import { doc, getDoc } from "firebase/firestore"; // Firestore からのデータ取得用
 
 export function Dashboard() {
+  const [tutorialsCount, setTutorialsCount] = useState(0);
+  const [problemsCount, setProblemsCount] = useState(0);
+  const [totalWatchTime, setTotalWatchTime] = useState("0:00");
+
+  // Firestore からデータを取得して状態に保存
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const docRef = doc(db, "users", "USER_ID"); // ここでユーザーIDを指定
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setTutorialsCount(userData.tutorialsCount || 0);
+          setProblemsCount(userData.problemsCount || 0);
+          setTotalWatchTime(userData.totalWatchTime || "0:00");
+        }
+      } catch (error) {
+        console.error("Error fetching user data: ", error);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow">
         <div className="container mx-auto flex items-center justify-between p-4">
           <div className="flex items-center space-x-2">
             <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="h-10 w-10" />
-            <span className="text-xl text-soft-blue">Re-Light LMS</span>
+            <span className="text-xl text-soft-blue font-semibold">Re-Light LMS</span>
           </div>
         </div>
       </header>
-      <main className="p-4 space-y-6">
-        <section className="space-y-4">
-          <h1 className="text-2xl font-bold">UserName</h1>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="col-span-2 p-4 bg-white rounded-lg shadow-md">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">1月</span>
-                <span className="text-sm">2月</span>
-                <span className="text-sm">3月</span>
-                <span className="text-sm">4月</span>
-                <span className="text-sm">5月</span>
-                <span className="text-sm">6月</span>
-                <span className="text-sm">7月</span>
-                <span className="text-sm">8月</span>
-                <span className="text-sm">9月</span>
-              </div>
-              <div className="h-24 bg-gray-200 rounded-md">
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-gray-500 text-sm">GitHub Contribution Graph</div>
-                </div>
-              </div>
-              <div className="mt-2 text-sm text-center">← 2023 年</div>
+      <main className="container mx-auto p-4">
+        {/* 学習進捗と進捗状況を横並びにする */}
+        <section className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+          {/* 学習進捗カレンダー */}
+          <div className="md:flex-1 bg-white rounded-lg p-4 shadow-md">
+            <h2 className="text-lg font-bold mb-2">学習進捗カレンダー</h2>
+            <div className="w-full h-40 overflow-hidden"> {/* 高さを少し小さく調整 */}
+              <LearningProgressCalendar />
             </div>
-            <div className="p-4 bg-white rounded-lg shadow-md">
-              <h2 className="text-lg font-bold">進捗状況</h2>
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-center">
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-2xl font-bold">12</div>
-                  </div>
-                  <div className="text-sm">チャートリール</div>
+          </div>
+          {/* 進捗状況 */}
+          <div className="md:w-1/3 bg-white rounded-lg p-4 shadow-md">
+            <h2 className="text-lg font-bold mb-2">進捗状況</h2>
+            <div className="flex justify-around items-center space-x-2">
+              {/* チュートリアル円 */}
+              <div className="flex flex-col items-center">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-24 h-24">
+                  <span className="text-3xl font-bold">{tutorialsCount}</span>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">9</div>
-                  <div className="text-sm">問題</div>
+                <div className="text-sm mt-2">チュートリアル</div>
+              </div>
+              {/* 問題円 */}
+              <div className="flex flex-col items-center">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-16 h-16">
+                  <span className="text-xl font-bold">{problemsCount}</span>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">14:33</div>
-                  <div className="text-sm">最終閲覧時間</div>
+                <div className="text-sm mt-2">問題</div>
+              </div>
+              {/* 総動画閲覧時間円 */}
+              <div className="flex flex-col items-center">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-32 h-32">
+                  <span className="text-3xl font-bold">{totalWatchTime}</span>
                 </div>
+                <div className="text-sm mt-2">総動画閲覧時間</div>
               </div>
             </div>
           </div>
         </section>
+        {/* コースリストの表示 */}
+        <section className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Courses</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 各コンテンツをリンクでラップ */}
+            <Link href="/courses/html">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+                <Image src="/HTML.svg" alt="HTML" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
+                <h3 className="text-lg text-blue-500 font-semibold mb-2">HTML</h3>
+                <p className="text-gray-600">まずはウェブサイトに文字を表示する方法から学んでいきましょう。</p>
+              </Card>
+            </Link>
+            <Link href="/courses/css">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+                <Image src="/CSS.svg" alt="CSS" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
+                <h3 className="text-lg text-blue-500 font-semibold mb-2">CSS</h3>
+                <p className="text-gray-600">コースを終了すると、Webアプリやサイトのデザインを作成するスキルが身につきます。</p>
+              </Card>
+            </Link>
+            <Link href="/courses/bootstrap">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+                <Image src="/Bootstrap.svg" alt="Bootstrap" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
+                <h3 className="text-lg text-blue-500 font-semibold mb-2">Bootstrap</h3>
+                <p className="text-gray-600">開発をより高速に進めることができるようになります。</p>
+              </Card>
+            </Link>
+            <Link href="/courses/javascript">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+                <Image src="/JavaScript.svg" alt="JavaScript" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
+                <h3 className="text-lg text-blue-500 font-semibold mb-2">JavaScript</h3>
+                <p className="text-gray-600">画面に動きをつけたり、サーバーと情報を送信することができるようになります。</p>
+              </Card>
+            </Link>
+            <Link href="/courses/php">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+                <Image src="/PHP.svg" alt="HTML" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
+                <h3 className="text-lg text-blue-500 font-semibold mb-2">PHP</h3>
+                <p className="text-gray-600">オンラインショップ機能を実装したWebサイトを開発できるようになります。</p>
+              </Card>
+            </Link>
+            <Link href="/courses/database">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+                <Image src="/DataBase.svg" alt="HTML" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
+                <h3 className="text-lg text-blue-500 font-semibold mb-2">DataBase</h3>
+                <p className="text-gray-600">データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきましょう。</p>
+              </Card>
+            </Link>
+            {/* さらに他のコースのリンクを追加 */}
+          </div>
+        </section>
       </main>
+      <footer className="bg-white shadow mt-8">
+        <div className="container mx-auto p-4 flex justify-between">
+          <div className="text-gray-500">© 2024 - Re-Light. All rights reserved.</div>
+        </div>
+      </footer>
     </div>
   );
 }
 
-// 各 SVG アイコンコンポーネントに型を定義
-function LockIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function LogInIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-      <polyline points="10 17 15 12 10 7" />
-      <line x1="15" x2="3" y1="12" y2="12" />
-    </svg>
-  );
-}
-
-function MenuIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="4" x2="20" y1="12" y2="12" />
-      <line x1="4" x2="20" y1="6" y2="6" />
-      <line x1="4" x2="20" y1="18" y2="18" />
-    </svg>
-  );
-}
 export default Dashboard;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Content } from "./ContentManagement";
 import { storage } from "@/firebase"; // Firebase Storage のインポート
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Storage 関連関数のインポート
@@ -10,6 +11,9 @@ interface Element {
   content?: string;
   caption?: string;
   order: number;
+  style?: React.CSSProperties;
+  width?: number;
+  height?: number;
 }
 
 interface ContentFormProps {
@@ -53,10 +57,14 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     ]);
   };
 
+  // 要素を削除する関数
+  const removeElement = (index: number) => {
+    setElements((prevElements) => prevElements.filter((_, i) => i !== index));
+  };
+
   const updateElement = (index: number, field: keyof Element, value: string | number) => {
     setElements((prevElements) => {
       const newElements = [...prevElements];
-      
       switch (field) {
         case "content":
         case "url":
@@ -71,10 +79,13 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
             newElements[index].type = value;
           }
           break;
+        case "width":
+        case "height":
+          if (typeof value === "number") newElements[index][field] = value;
+          break;
         default:
           break;
       }
-  
       return newElements;
     });
   };
@@ -104,6 +115,13 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
         setUploadProgress(0);
       }
     );
+  };
+
+  // 画像がロードされた際にサイズを取得する関数
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>, index: number) => {
+    const img = event.currentTarget;
+    updateElement(index, "width", img.naturalWidth);
+    updateElement(index, "height", img.naturalHeight);
   };
 
   const handleSubmit = () => {
@@ -176,7 +194,19 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                   className="mb-2"
                 />
                 {uploading && <p>アップロード中: {uploadProgress}%</p>}
-                {element.url && <img src={element.url} alt="Uploaded" className="max-w-full h-auto mt-2" />}
+                {element.url && (
+                  <>
+                    <Image
+                      src={element.url}
+                      alt="Uploaded"
+                      width={500}
+                      height={300}
+                      onLoad={(e) => handleImageLoad(e, index)} // onLoad でサイズ取得
+                      className="max-w-full h-auto mt-2"
+                    />
+                    <p>サイズ: {element.width} x {element.height}</p> {/* サイズ表示 */}
+                  </>
+                )}
                 <input
                   value={element.caption || ""}
                   onChange={(e) => updateElement(index, "caption", e.target.value)}
@@ -193,6 +223,12 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 className="w-full p-2 border rounded"
               />
             )}
+            <button
+              onClick={() => removeElement(index)} // 削除ボタン
+              className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
+            >
+              削除
+            </button>
           </div>
         ))}
         <button onClick={addElement} className="mt-2 bg-green-500 text-white px-4 py-2 rounded">

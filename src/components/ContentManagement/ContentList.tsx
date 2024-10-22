@@ -1,7 +1,8 @@
 import { useState } from "react";
+import Image from "next/image";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Content } from "./ContentManagement";
-import Modal from "@/components/ui/Modal"; // モーダルコンポーネントのインポート
+import Modal from "@/components/ui/Modal";
 
 interface ContentListProps {
   contents: Content[];
@@ -120,10 +121,17 @@ export default function ContentList({
                                             動画を表示
                                           </a>
                                         )}
-                                        {element.type === "image" && (
+                                        {element.type === "image" && element.url && (
                                           <>
-                                            <img src={element.url} alt={element.caption} className="w-full" />
-                                            <p className="text-sm">{element.caption}</p>
+                                            <Image 
+                                              src={element.url} 
+                                              alt={element.caption || "画像"} 
+                                              className="w-full" 
+                                              width={element.width || 500} // 動的な幅
+                                              height={element.height || 300} // 動的な高さ
+                                              objectFit="cover" // 画像のフィット方法を指定
+                                            />
+                                            {element.caption && <p className="text-sm">{element.caption}</p>}
                                           </>
                                         )}
                                         {element.type === "code" && (
@@ -166,7 +174,16 @@ export default function ContentList({
                     お使いのブラウザは動画再生に対応していません。
                   </video>
                 )}
-                {element.type === "image" && <img src={element.url} alt={element.caption} className="w-full" />}
+                {element.type === "image" && element.url && (
+                  <Image
+                    src={element.url}
+                    alt={element.caption || "画像"}
+                    className="w-full"
+                    width={element.width || 500} // 動的に指定された幅
+                    height={element.height || 300} // 動的に指定された高さ
+                    objectFit="cover" // 画像がコンテナにフィットするように調整
+                  />
+                )}
                 {element.type === "code" && (
                   <pre className="bg-gray-100 p-2 rounded">
                     <code>{element.content}</code>

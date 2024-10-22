@@ -91,14 +91,22 @@ export function TopPage() {
       </header>
 
       <main className="container mx-auto p-4">
-        <section className="bg-blue-100 p-6 rounded-lg flex flex-col items-center justify-between md:flex-row">
+        <section className="bg-blue-100 p-6 rounded-lg flex flex-col items-center justify-between md:flex-row ">
           <div>
             <h1 className="text-2xl text-navy font-bold mb-2">世界で通用するエンジニアへ</h1>
             <p className="text-light-blue mb-4">Re-Light LMSでプログラミングを学んでトップエンジニアを目指しましょう。</p>
-            <div className="space-x-4 flex flex-col items-center md:flex-row mt-10">
+            <Image
+            src="/TopImage.png"
+            alt="Illustration"
+            className="h-72 w-96 mt-4 md:mt-0 inline-block md:hidden"
+            width={384}
+            height={288}
+            style={{ objectFit: "cover" }}
+            />
+            <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-4 mt-10">
               <Button
                 variant="default"
-                className="bg-light-green text-white mb-2 md:mb-0 w-full md:w-auto"
+                className="bg-light-green text-white mb-2 md:mb-0 w-3/4 md:w-auto"
                 onClick={() => {
                   setCurrentForm("signup");
                   toggleModal();
@@ -107,7 +115,7 @@ export function TopPage() {
                 ユーザー登録 / ログイン
               </Button>
               <Button
-                className="bg-light-green text-white mb-2 md:mb-0 w-full md:w-auto"
+                className="bg-light-green text-white mb-2 md:mb-0 w-3/4 md:w-auto"
                 onClick={() => {
                   setCurrentForm("companyLogin");
                   toggleModal();
@@ -120,9 +128,9 @@ export function TopPage() {
           <Image
             src="/TopImage.png"
             alt="Illustration"
-            className="h-72 w-96 mt-4 md:mt-0"
-            width={384} // 96 * 4 (tailwind uses rem, default 1rem = 16px)
-            height={288} // 72 * 4
+            className="h-72 w-96 mt-4 md:mt-0 hidden  md:inline-block"
+            width={384}
+            height={288}
             style={{ objectFit: "cover" }}
           />
         </section>

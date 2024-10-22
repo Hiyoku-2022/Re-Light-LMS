@@ -22,6 +22,9 @@ interface Element {
   content?: string;
   caption?: string;
   order: number;
+  style?: React.CSSProperties;
+  width?: number;
+  height?: number;
 }
 
 export default function ContentManagement() {
