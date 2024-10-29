@@ -71,7 +71,7 @@ export function CompanyDashboard() {
   }, [companyCode]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-white">
       <header className="bg-white shadow">
         <div className="container mx-auto flex items-center justify-between p-4">
           <div className="flex items-center space-x-2">
@@ -80,51 +80,48 @@ export function CompanyDashboard() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto p-4 flex-1">
+      <main className="container mx-auto p-4 flex-1 ">
         {/* 上位ユーザーの表示セクション */}
-        <section className="grid grid-cols-3 gap-4 mt-4">
-          <Card className="p-4">
-            <CardTitle className="text-sm font-medium">総学習時間（全体概要）</CardTitle>
-            <div className="mt-2">
+        <section className="p-4 bg-gray-100 rounded-xl shadow mt-6">
+          <CardTitle className="text-sm font-medium">総学習時間（全体概要）</CardTitle>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <Card className="p-4 rounded-xl shadow">
               <p className="text-xs text-muted-foreground">平均動画視聴時間</p>
-              <div className="text-2xl font-bold">00:00</div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <CardTitle className="text-sm font-medium">平均学習時間</CardTitle>
-            <div className="mt-2">
+              <div className="text-2xl font-bold text-sky-blue">00:00</div>
+            </Card>
+            <Card className="p-4 rounded-xl shadow">
               <p className="text-xs text-muted-foreground">平均学習時間</p>
-              <div className="text-2xl font-bold">00:00</div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <CardTitle className="text-sm font-medium">上位ユーザー</CardTitle>
-            <div className="mt-2 space-y-1">
-              {users.slice(0, 3).map((user, index) => (
-                <UserProgress key={index} name={user.name} value={user.value} />
-              ))}
-            </div>
-          </Card>
+              <div className="text-2xl font-bold text-sky-blue">00:00</div>
+            </Card>
+            <Card className="p-4 rounded-xl shadow">
+            <p className="text-xs text-muted-foreground">上位3ユーザー</p>
+              <div className="mt-2 space-y-1">
+                {users.slice(0, 3).map((user, index) => (
+                  <UserProgress key={index} name={user.name} value={user.value} />
+                ))}
+              </div>
+            </Card>
+          </div>
         </section>
 
         {/* 活動概要セクション */}
-        <section className="p-4 bg-white rounded shadow mt-6">
+        <section className="p-4 bg-gray-100 rounded-xl shadow mt-6">
           <CardTitle className="text-sm font-medium">活動概要</CardTitle>
           <div className="grid grid-cols-2 gap-4 mt-2">
-            <Card className="p-4">
+            <Card className="p-4 rounded-xl shadow">
               <p className="text-xs text-muted-foreground">最近のアクティブユーザー</p>
-              <div className="text-2xl font-bold text-blue-600">{users.length} ユーザー</div>
+              <div className="text-2xl font-bold text-sky-blue">{users.length} ユーザー</div>
             </Card>
-            <Card className="p-4">
+            <Card className="p-4 rounded-xl shadow">
               <p className="text-xs text-muted-foreground">非アクティブユーザー</p>
-              <div className="text-2xl font-bold text-blue-600">0%</div>
+              <div className="text-2xl font-bold text-sky-blue">0%</div>
             </Card>
           </div>
         </section>
 
         {/* 社員ユーザーのテーブル表示 */}
-        <section className="p-4 bg-white rounded shadow mt-6 flex-1">
-          <Input type="text" placeholder="ユーザー名で検索" className="w-full mb-4" />
+        <section className="p-4 bg-gray-100 rounded-xl shadow mt-6 flex-1">
+          <Input type="text" placeholder="ユーザー名で検索" className="w-full mb-4 rounded-full shadow" />
           {loading ? (
             <div>データを読み込み中...</div>
           ) : (
@@ -133,19 +130,20 @@ export function CompanyDashboard() {
                 <TableRow>
                   <TableHead>ユーザー名</TableHead>
                   <TableHead>進捗状況</TableHead>
+                  <TableHead>{""}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user, index) => (
                   <TableRow key={index}>
-                    <TableCell>{user.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.name}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <span>{user.progress}</span>
-                        <Progress value={user.value} className="w-1/2 bg-blue-300" /> {/* 幅を調整 */}
+                        <span className="text-muted-foreground">{user.progress}</span>
+                        <Progress value={user.value} className="w-1/2 bg-blue-300" />
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right text-muted-foreground">
                       <Button variant="ghost" size="sm">
                         詳細を開く
                         <ChevronDownIcon className="ml-1 w-4 h-4" />
@@ -159,9 +157,14 @@ export function CompanyDashboard() {
         </section>
       </main>
       <footer className="bg-white shadow mt-auto">
-        <div className="container mx-auto p-4 flex justify-between">
-          <div className="space-x-4"></div>
-          <div className="text-gray-500">© 2024 - Re-Light. All rights reserved.</div>
+        <div className="container mx-auto p-4 flex justify-center items-center">
+          <div className="flex-1 flex justify-start">
+            {/* TODO プライバシー利用規約に関しては固まり次第実装 */}
+            {/* <div className="space-x-4 mr-3">プライバシー</div>
+            <div className="space-x-4">利用規約</div> */}
+          </div>
+          <div className="text-gray-500 text-center">© 2024 - Re-Light. All rights reserved.</div>
+          <div className="flex-1"></div>
         </div>
       </footer>
     </div>
@@ -171,10 +174,12 @@ export function CompanyDashboard() {
 // 個別ユーザーの進捗コンポーネント
 function UserProgress({ name, value }: { name: string; value: number }) {
   return (
-    <div className="flex justify-between text-xs">
-      <span>{name}</span>
-      <span>{value}%</span>
-      <Progress value={value} className="w-1/2 bg-blue-300" /> {/* ステータスバーの長さを変更 */}
+    <div className="flex items-center justify-between text-xs space-x-2">
+      <span className="text-xs text-muted-foreground ml-4">{name}</span>
+      <div className="w-1/2 flex items-center space-x-2">
+        <Progress value={value} className="bg-blue-300" />
+        <span>{value}%</span>
+      </div>
     </div>
   );
 }

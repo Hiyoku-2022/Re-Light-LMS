@@ -44,21 +44,21 @@ export function Dashboard() {
       </header>
       <main className="container mx-auto p-4">
         {/* 学習進捗と進捗状況を横並びにする */}
-        <section className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+        <section className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
           {/* 学習進捗カレンダー */}
           <div className="md:flex-1 bg-white rounded-lg p-4 shadow-md">
             <h2 className="text-lg font-bold mb-2">学習進捗カレンダー</h2>
-            <div className="w-full h-40 overflow-hidden"> {/* 高さを少し小さく調整 */}
+            <div className="w-full h-40">
               <LearningProgressCalendar />
             </div>
           </div>
           {/* 進捗状況 */}
-          <div className="md:w-1/3 bg-white rounded-lg p-4 shadow-md">
+          <div className="lg:w-1/3 bg-white rounded-lg p-4 shadow-md">
             <h2 className="text-lg font-bold mb-2">進捗状況</h2>
             <div className="flex justify-around items-center space-x-2">
               {/* チュートリアル円 */}
               <div className="flex flex-col items-center">
-                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-24 h-24">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-28 h-28">
                   <span className="text-3xl font-bold">{tutorialsCount}</span>
                 </div>
                 <div className="text-sm mt-2">チュートリアル</div>
@@ -72,62 +72,73 @@ export function Dashboard() {
               </div>
               {/* 総動画閲覧時間円 */}
               <div className="flex flex-col items-center">
-                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-32 h-32">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-24 h-24">
                   <span className="text-3xl font-bold">{totalWatchTime}</span>
                 </div>
-                <div className="text-sm mt-2">総動画閲覧時間</div>
+                <div className="text-sm mt-2">総学習時間</div>
               </div>
             </div>
           </div>
         </section>
         {/* コースリストの表示 */}
         <section className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Courses</h2>
+          <h2 className="text-xl font-bold text-navy mb-4">Featured Courses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* 各コンテンツをリンクでラップ */}
             <Link href="/courses/html">
-              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col justify-between">
                 <Image src="/HTML.svg" alt="HTML" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
-                <h3 className="text-lg text-blue-500 font-semibold mb-2">HTML</h3>
-                <p className="text-gray-600">まずはウェブサイトに文字を表示する方法から学んでいきましょう。</p>
+                <div className="flex-grow">
+                  <h3 className="text-lg text-light-blue mb-2">HTML</h3>
+                  <p className="text-light-gray">まずはウェブサイトに文字を表示する方法から学んでいきましょう。</p>
+                </div>
               </Card>
             </Link>
             <Link href="/courses/css">
-              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col justify-between">
                 <Image src="/CSS.svg" alt="CSS" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
-                <h3 className="text-lg text-blue-500 font-semibold mb-2">CSS</h3>
-                <p className="text-gray-600">コースを終了すると、Webアプリやサイトのデザインを作成するスキルが身につきます。</p>
+                <div className="flex-grow">
+                  <h3 className="text-lg text-light-blue mb-2">CSS</h3>
+                  <p className="text-light-gray">コースを終了すると、Webアプリやサイトのデザインを作成するスキルが身につきます。</p>
+                </div>
               </Card>
             </Link>
             <Link href="/courses/bootstrap">
-              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col justify-between">
                 <Image src="/Bootstrap.svg" alt="Bootstrap" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
-                <h3 className="text-lg text-blue-500 font-semibold mb-2">Bootstrap</h3>
-                <p className="text-gray-600">開発をより高速に進めることができるようになります。</p>
+                <div className="flex-grow">
+                  <h3 className="text-lg text-light-blue mb-2">Bootstrap</h3>
+                  <p className="text-light-gray">開発をより高速に進めることができるようになります。</p>
+                </div>
               </Card>
             </Link>
             <Link href="/courses/javascript">
-              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col justify-between">
                 <Image src="/JavaScript.svg" alt="JavaScript" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
-                <h3 className="text-lg text-blue-500 font-semibold mb-2">JavaScript</h3>
-                <p className="text-gray-600">画面に動きをつけたり、サーバーと情報を送信することができるようになります。</p>
+                <div className="flex-grow">
+                  <h3 className="text-lg text-light-blue mb-2">JavaScript</h3>
+                  <p className="text-light-gray">画面に動きをつけたり、サーバーと情報を送信することができるようになります。</p>
+                </div>
               </Card>
             </Link>
             <Link href="/courses/php">
-              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col justify-between">
                 <Image src="/PHP.svg" alt="HTML" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
-                <h3 className="text-lg text-blue-500 font-semibold mb-2">PHP</h3>
-                <p className="text-gray-600">オンラインショップ機能を実装したWebサイトを開発できるようになります。</p>
+                <div className="flex-grow">
+                  <h3 className="text-lg text-light-blue mb-2">PHP</h3>
+                  <p className="text-light-gray">オンラインショップ機能を実装したWebサイトを開発できるようになります。</p>
+                </div>
               </Card>
             </Link>
             <Link href="/courses/database">
-              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow">
+              <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col justify-between">
                 <Image src="/DataBase.svg" alt="HTML" width={150} height={150} className="h-36 w-64 object-cover mb-4" />
-                <h3 className="text-lg text-blue-500 font-semibold mb-2">DataBase</h3>
-                <p className="text-gray-600">データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきましょう。</p>
+                <div className="flex-grow">
+                  <h3 className="text-lg text-light-blue mb-2">DataBase</h3>
+                  <p className="text-light-gray">データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきます。</p>
+                </div>
               </Card>
             </Link>
-            {/* さらに他のコースのリンクを追加 */}
           </div>
         </section>
       </main>

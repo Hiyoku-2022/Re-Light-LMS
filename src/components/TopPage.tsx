@@ -92,9 +92,9 @@ export function TopPage() {
 
       <main className="container mx-auto p-4">
         <section className="bg-blue-100 p-6 rounded-lg flex flex-col items-center justify-between md:flex-row ">
-          <div>
-            <h1 className="text-2xl text-navy font-bold mb-2">世界で通用するエンジニアへ</h1>
-            <p className="text-light-blue mb-4">Re-Light LMSでプログラミングを学んでトップエンジニアを目指しましょう。</p>
+          <div className="text-center">
+            <h1 className="text-2xl text-navy font-bold mb-2 text-left">世界で通用するエンジニアへ</h1>
+            <p className="text-light-blue mb-4 text-left">Re-Light LMSでプログラミングを学んでトップエンジニアを目指しましょう。</p>
             <Image
             src="/TopImage.png"
             alt="Illustration"
@@ -212,7 +212,7 @@ export function TopPage() {
               />
               <h3 className="text-lg text-light-blue mb-2">DataBase</h3>
               <p className="text-light-gray">
-                データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきましょう。
+                データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきます。
               </p>
             </Card>
           </div>
