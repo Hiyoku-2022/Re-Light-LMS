@@ -1,6 +1,8 @@
-import { db } from "@/firebase"; // Firestore インスタンスをインポート
-import { collection, query, where, getDocs } from "firebase/firestore"; // Firestore クエリ関連関数
-import { useRouter } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { db } from "@/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import React from "react";
 
@@ -10,6 +12,7 @@ interface Content {
   title: string;
   description: string;
   tags: string[];
+  order: number;
   elements: { id: string; type: string; content?: string; url?: string }[];
 }
 
@@ -18,27 +21,35 @@ interface CoursePageProps {
 }
 
 // コースページコンポーネント
-const CoursePage: React.FC<CoursePageProps> = async ({ params }) => {
+const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
+  const [contents, setContents] = useState<Content[]>([]);
   const courseName = params.course;
 
-  // Firestore から該当するタグを持つコンテンツを取得する関数を定義
-  const getContentsByTag = async (tag: string) => {
-    const contentRef = collection(db, "contents");
-    const q = query(contentRef, where("tags", "array-contains", tag));
-    const querySnapshot = await getDocs(q);
-
-    // コンテンツを取得し、データを整形
-    const contents: Content[] = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Content[];
-
-    return contents;
-  };
-
-  // 指定されたタグに基づくコンテンツを取得
-  const contents = await getContentsByTag(courseName);
-
+  // Firestoreから該当するタグを持つコンテンツを取得
+  useEffect(() => {
+    const getContentsByTag = async (tag: string) => {
+      try {
+        const contentRef = collection(db, "contents");
+        const q = query(contentRef, where("tags", "array-contains", tag));
+        const querySnapshot = await getDocs(q);
+  
+        const fetchedContents: Content[] = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Content[];
+  
+        // orderフィールドに基づいてソート
+        const sortedContents = fetchedContents.sort((a, b) => a.order - b.order);
+  
+        setContents(sortedContents);
+      } catch (error) {
+        console.error("Error fetching content data: ", error);
+      }
+    };
+  
+    getContentsByTag(courseName);
+  }, [courseName]);
+  
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto bg-white p-6 shadow rounded">

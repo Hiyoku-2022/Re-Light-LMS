@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "@/firebase"; // Firebase 設定をインポート
-import { collection, query, orderBy, addDoc, updateDoc, deleteDoc, onSnapshot, doc } from "firebase/firestore"; // Firestore 関連インポート
+import { db } from "@/firebase";
+import { collection, query, orderBy, addDoc, updateDoc, deleteDoc, onSnapshot, doc } from "firebase/firestore";
 import ContentList from "./ContentList";
 import ContentForm from "./ContentForm";
 
@@ -110,7 +110,7 @@ export default function ContentManagement() {
         onDeleteContent={deleteContent}
         onEditContent={selectContentForEdit}
         onReorder={handleReorder}
-        onElementReorder={handleElementReorder} // 内部要素の並び替え関数を渡す
+        onElementReorder={handleElementReorder}
       />
     </div>
   );

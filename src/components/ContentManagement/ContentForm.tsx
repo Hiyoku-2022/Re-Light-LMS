@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Content } from "./ContentManagement";
-import { storage } from "@/firebase"; // Firebase Storage のインポート
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Storage 関連関数のインポート
+import { storage } from "@/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 interface Element {
   id: string;
@@ -28,8 +28,8 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [elements, setElements] = useState<Element[]>([]);
-  const [uploading, setUploading] = useState(false); // アップロード状態を管理
-  const [uploadProgress, setUploadProgress] = useState(0); // アップロードの進捗状況
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (selectedContent) {
@@ -101,7 +101,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
       "state_changed",
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress); // アップロードの進捗を更新
+        setUploadProgress(progress);
       },
       (error) => {
         console.error("アップロードエラー:", error);
@@ -110,7 +110,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
       async () => {
         // アップロード完了後にダウンロードURLを取得
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        updateElement(index, "url", downloadURL); // URLを要素に設定
+        updateElement(index, "url", downloadURL);
         setUploading(false);
         setUploadProgress(0);
       }
@@ -201,10 +201,10 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                       alt="Uploaded"
                       width={500}
                       height={300}
-                      onLoad={(e) => handleImageLoad(e, index)} // onLoad でサイズ取得
+                      onLoad={(e) => handleImageLoad(e, index)}
                       className="max-w-full h-auto mt-2"
                     />
-                    <p>サイズ: {element.width} x {element.height}</p> {/* サイズ表示 */}
+                    <p>サイズ: {element.width} x {element.height}</p>
                   </>
                 )}
                 <input
@@ -224,7 +224,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
               />
             )}
             <button
-              onClick={() => removeElement(index)} // 削除ボタン
+              onClick={() => removeElement(index)}
               className="mt-2 bg-red-500 text-white px-4 py-2 rounded"
             >
               削除

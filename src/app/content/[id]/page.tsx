@@ -79,7 +79,7 @@ export default function ContentPage() {
         router.push(`/content/${nextContentId}`);
       } else {
         alert("次のコンテンツは存在しません。");
-        router.push("/dashboard"); // 次のコンテンツが無い場合、ダッシュボードに戻る
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error("進捗の更新に失敗しました", error);
@@ -104,10 +104,10 @@ export default function ContentPage() {
           {content.elements.map((element, index) => (
             <div key={index}>
               {element.type === "text" && <div dangerouslySetInnerHTML={{ __html: element.content || "" }} />}
-              {element.type === "video" && (
+              {element.type === "video" && element.url && (
                 <div className="video-container mx-auto my-4">
                   <iframe
-                    src={element.url || ""}
+                    src={element.url}
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
                     className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px]"
@@ -116,16 +116,18 @@ export default function ContentPage() {
                   />
                 </div>
               )}
-                {element.type === "image" && (
-                <Image
+              {element.type === "image" && (
+                <div className="text-center">
+                  <Image
                     src={element.url || ""} 
                     alt={element.caption || "画像"} 
-                    width={element.width || 800} // 動的に指定された幅、なければデフォルト800
-                    height={element.height || 600} // 動的に指定された高さ、なければデフォルト600
-                    className="max-w-full h-auto" 
+                    width={element.width || 800}
+                    height={element.height || 600}
+                    className="mx-auto max-w-full h-auto" 
                     style={element.style || {}}
-                />
-                )}
+                  />
+                </div>
+              )}
               {element.type === "code" && (
                 <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
                   <code>{element.content || ""}</code>

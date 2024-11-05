@@ -20,7 +20,7 @@ export default function ContentList({
   onElementReorder,
 }: ContentListProps) {
   const [expandedContent, setExpandedContent] = useState<string | null>(null);
-  const [previewContent, setPreviewContent] = useState<Content | null>(null); // プレビュー用の状態
+  const [previewContent, setPreviewContent] = useState<Content | null>(null);
 
   const handleContentDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -127,9 +127,9 @@ export default function ContentList({
                                               src={element.url} 
                                               alt={element.caption || "画像"} 
                                               className="w-full" 
-                                              width={element.width || 500} // 動的な幅
-                                              height={element.height || 300} // 動的な高さ
-                                              objectFit="cover" // 画像のフィット方法を指定
+                                              width={element.width || 500}
+                                              height={element.height || 300}
+                                              objectFit="cover"
                                             />
                                             {element.caption && <p className="text-sm">{element.caption}</p>}
                                           </>
@@ -179,9 +179,9 @@ export default function ContentList({
                     src={element.url}
                     alt={element.caption || "画像"}
                     className="w-full"
-                    width={element.width || 500} // 動的に指定された幅
-                    height={element.height || 300} // 動的に指定された高さ
-                    objectFit="cover" // 画像がコンテナにフィットするように調整
+                    width={element.width || 500}
+                    height={element.height || 300}
+                    objectFit="cover"
                   />
                 )}
                 {element.type === "code" && (
