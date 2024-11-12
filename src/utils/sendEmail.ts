@@ -1,10 +1,9 @@
 import nodemailer from "nodemailer";
 
-// Nodemailer の設定を行う（環境変数から読み込み）
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 465, // SSL使用時: 465, 非SSL: 587
-  secure: Number(process.env.SMTP_PORT) === 465, // ポート 465 の場合は true
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: Number(process.env.SMTP_PORT) === 465,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,

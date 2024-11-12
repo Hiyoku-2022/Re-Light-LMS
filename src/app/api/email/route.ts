@@ -5,7 +5,6 @@ import {
   sendCompanySignupConfirmationEmail 
 } from "@/services/emailService";
 
-// POST リクエストハンドラ
 export async function POST(request: NextRequest) {
   const { type, to, userName, resetLink, companyCode } = await request.json();
 

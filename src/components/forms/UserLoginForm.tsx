@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
 import { auth } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { toast, ToastContainer } from "react-toastify";
@@ -23,33 +23,10 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
   const handleLogin = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-
-      toast.success("ログインに成功しました！", {
-        position: "top-center",
-        autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
-        style: {
-          fontSize: "14px",
-          maxWidth: "300px",
-          padding: "10px",
-          margin: "0 auto",
-          background: "#B0E57C",
-          textAlign: "center",
-          borderRadius: "8px",
-        },
-      });
-
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
+      router.push("/dashboard");
     } catch (error: any) {
       console.error("ログインエラー:", error);
 
-      // エラーコードに応じて表示するメッセージを変更
       let errorMessage = "ログインに失敗しました。もう一度お試しください。";
       if (error.code === "auth/user-not-found") {
         errorMessage = "ユーザーが見つかりません。アカウントをお持ちでない場合は、サインアップしてください。";
@@ -92,7 +69,7 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
 
   return (
     <div className="w-full max-w-md p-4 space-y-3 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[80vh] mx-auto">
-      <ToastContainer /> {/* トースト通知を表示 */}
+      <ToastContainer />
       <CardHeader>
         <CardTitle className="text-center text-xl font-semibold">ユーザーログイン</CardTitle>
       </CardHeader>

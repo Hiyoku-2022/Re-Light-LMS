@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
 
 export function PasswordResetForm(): JSX.Element {
   const [password, setPassword] = useState("");
@@ -15,7 +15,6 @@ export function PasswordResetForm(): JSX.Element {
       console.error("パスワードが一致しません。");
       return;
     }
-    // パスワードリセット処理（Firebase などの処理をここに記述）
     console.log("パスワードリセット中...");
   };
 

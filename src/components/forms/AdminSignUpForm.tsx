@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -16,7 +16,7 @@ export function AdminSignUpForm(): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [adminCode, setAdminCode] = useState(""); // 特別な管理者用コード
+  const [adminCode, setAdminCode] = useState("");
   const router = useRouter();
 
   const handleSignUp = async () => {
@@ -25,17 +25,15 @@ export function AdminSignUpForm(): JSX.Element {
       return;
     }
 
-    if (adminCode !== process.env.NEXT_PUBLIC_ADMIN_CODE) { // 管理者用コードを検証
+    if (adminCode !== process.env.NEXT_PUBLIC_ADMIN_CODE) {
       toast.error("管理者用コードが無効です。", { position: "top-center", autoClose: 2000 });
       return;
     }
 
     try {
-      // Firebase Auth で管理者ユーザーを作成
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
       if (userCredential.user) {
-        // Firestore に管理者情報を保存
         await setDoc(doc(db, "admins", userCredential.user.uid), {
           email: email,
           role: "admin",
@@ -44,7 +42,6 @@ export function AdminSignUpForm(): JSX.Element {
 
         toast.success("管理者ユーザーが作成されました！", { position: "top-center", autoClose: 2000 });
 
-        // 管理者ダッシュボードへリダイレクト
         setTimeout(() => router.push("/admin"), 2000);
       }
     } catch (error) {

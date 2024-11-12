@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { auth, db } from "@/firebase"; // Firebase Auth と Firestore をインポート
+import { CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
+import { auth, db } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
@@ -16,35 +16,22 @@ export default function AdminLoginForm(): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(""); // エラーメッセージ用の状態変数
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
-  // 管理者ログイン処理
   const handleAdminLogin = async () => {
     setLoading(true);
     setErrorMessage("");
     try {
-      // Firebase Authentication でログインを試行
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       if (userCredential.user) {
-        // Firestore からユーザーロールを確認
-        const userRef = doc(db, "admins", userCredential.user.uid); // `admins` コレクションを参照
+        const userRef = doc(db, "admins", userCredential.user.uid); 
         const userDoc = await getDoc(userRef);
 
         if (userDoc.exists() && userDoc.data().role === "admin") {
-          // 管理者ユーザーであれば、ダッシュボードにリダイレクト
-          toast.success("ログインに成功しました！", {
-            position: "top-center",
-            autoClose: 2000,
-            hideProgressBar: false,
-            style: { backgroundColor: "#B0E57C", textAlign: "center" },
-          });
-          setTimeout(() => {
-            router.push("/admindashboard"); // 管理者専用のダッシュボードへリダイレクト
-          }, 2000);
+          router.push("/admindashboard");
         } else {
-          // ロールが `admin` でない場合はエラー
           throw new Error("管理者権限がありません。");
         }
       }

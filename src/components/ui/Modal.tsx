@@ -17,7 +17,7 @@ export default function Modal({ onClose, children }: ModalProps) {
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-      onClick={handleOverlayClick} // 背景クリック時に handleOverlayClick を実行
+      onClick={handleOverlayClick}
     >
       {/* モーダル本体 */}
       <div

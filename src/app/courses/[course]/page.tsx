@@ -6,7 +6,6 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import React from "react";
 
-// ページ用の型を定義
 interface Content {
   id: string;
   title: string;
@@ -20,12 +19,10 @@ interface CoursePageProps {
   params: { course: string };
 }
 
-// コースページコンポーネント
 const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
   const [contents, setContents] = useState<Content[]>([]);
   const courseName = params.course;
 
-  // Firestoreから該当するタグを持つコンテンツを取得
   useEffect(() => {
     const getContentsByTag = async (tag: string) => {
       try {
@@ -38,7 +35,6 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
           ...doc.data(),
         })) as Content[];
   
-        // orderフィールドに基づいてソート
         const sortedContents = fetchedContents.sort((a, b) => a.order - b.order);
   
         setContents(sortedContents);
@@ -60,7 +56,6 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
           {courseName.toUpperCase()} の学習に役立つコンテンツ一覧を表示しています。
         </p>
 
-        {/* コンテンツリストを表示 */}
         <div className="space-y-4">
           {contents.length > 0 ? (
             contents.map((content) => (
@@ -79,7 +74,6 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
           )}
         </div>
 
-        {/* 戻るボタン */}
         <div className="mt-6">
           <Link href="/dashboard">
             <button className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400 transition">

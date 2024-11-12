@@ -25,13 +25,11 @@ export default function ContentPage() {
   const params = useParams();
   const router = useRouter();
   const [content, setContent] = useState<Content | null>(null);
-  const [userId, setUserId] = useState("exampleUserId"); // 仮のユーザーIDを設定
+  const [userId, setUserId] = useState("exampleUserId");
 
-  // `params` から `id` を取得し、string 型に変換
   const contentId = Array.isArray(params?.id) ? params.id[0] : params.id;
 
   useEffect(() => {
-    // `contentId` が正しく取得できているか確認
     if (!contentId) return;
 
     const fetchContent = async () => {
@@ -56,13 +54,11 @@ export default function ContentPage() {
     if (!content) return;
 
     try {
-      // Firestore 内のユーザー進捗を更新
       const userProgressRef = doc(db, "users", userId);
       await updateDoc(userProgressRef, {
         completedContents: arrayUnion(contentId),
       });
 
-      // 次の `order` を持つコンテンツを取得
       const nextOrder = content.order + 1;
       const nextContentQuery = query(
         collection(db, "contents"),

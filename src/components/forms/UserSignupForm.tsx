@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // useRouter をインポート
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Checkbox } from "@/components/UI/Checkbox";
+import { Button } from "@/components/UI/Button";
 import { auth, db } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { toast, ToastContainer } from "react-toastify"; // toast 関数と ToastContainer をインポート
-import "react-toastify/dist/ReactToastify.css"; // toastify のスタイルシートをインポート
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface SignupFormProps {
   onSwitchForm: (formType: "login" | "passwordReset") => void;
@@ -50,10 +50,8 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
         return;
       }
 
-      // Firebase Authentication でユーザーを作成
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Firestore にユーザー情報を保存
       if (userCredential.user) {
         await setDoc(doc(db, "users", userCredential.user.uid), {
           name: name,
@@ -62,7 +60,6 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
           companyCode: isCompanyUser ? companyCode : null,
         });
 
-        // サインアップ成功のトーストを表示
         toast.success("サインアップが完了しました！", {
           position: "top-center",
           autoClose: 2000,
@@ -82,7 +79,6 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
           },
         });
 
-        // 3秒後にダッシュボードにリダイレクト
         setTimeout(() => {
           router.push("/dashboard");
         }, 3000);
@@ -132,7 +128,7 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
 
   return (
     <div className="w-full max-w-md p-4 space-y-3 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[80vh]">
-      <ToastContainer /> {/* トースト通知を表示 */}
+      <ToastContainer />
       <CardHeader>
         <CardTitle className="text-center text-xl font-semibold">ユーザーサインアップ</CardTitle>
       </CardHeader>

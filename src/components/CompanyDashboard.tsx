@@ -1,30 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardTitle } from "@/components/UI/Card";
+import { Progress } from "@/components/UI/Progress";
 import Image from "next/image";
-import { Input } from "@/components/ui/input";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/UI/Input";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/UI/Table";
+import { Button } from "@/components/UI/Button";
 import { SVGProps } from "react";
-import { db, auth } from "lib/firebase"; // Firebase設定のインポート
+import { db, auth } from "lib/firebase";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import { Header } from "@/components/UI/Header";
 
 export function CompanyDashboard() {
   const [users, setUsers] = useState<{ name: string; progress: string; value: number }[]>([]);
   const [companyCode, setCompanyCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ログイン中の担当者の companyCode を取得
   useEffect(() => {
     const fetchCompanyCode = async (uid: string) => {
       try {
         const companyDoc = await getDoc(doc(db, "companies", uid));
         if (companyDoc.exists()) {
           const companyData = companyDoc.data();
-          setCompanyCode(companyData.companyCode); // companyCode を設定
+          setCompanyCode(companyData.companyCode);
         }
       } catch (error) {
         console.error("Company Code の取得中にエラーが発生しました:", error);
@@ -72,14 +72,7 @@ export function CompanyDashboard() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <header className="bg-white shadow">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <div className="flex items-center space-x-2">
-            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="h-10 w-10" />
-            <span className="text-xl text-soft-blue font-semibold">Re-Light LMS</span>
-          </div>
-        </div>
-      </header>
+      <Header dashboardType="company" onToggleSidebar={() => {}} />
       <main className="container mx-auto p-4 flex-1 ">
         {/* 上位ユーザーの表示セクション */}
         <section className="p-4 bg-gray-100 rounded-xl shadow mt-6">
@@ -94,7 +87,7 @@ export function CompanyDashboard() {
               <div className="text-2xl font-bold text-sky-blue">00:00</div>
             </Card>
             <Card className="p-4 rounded-xl shadow">
-            <p className="text-xs text-muted-foreground">上位3ユーザー</p>
+              <p className="text-xs text-muted-foreground">上位3ユーザー</p>
               <div className="mt-2 space-y-1">
                 {users.slice(0, 3).map((user, index) => (
                   <UserProgress key={index} name={user.name} value={user.value} />
@@ -160,8 +153,6 @@ export function CompanyDashboard() {
         <div className="container mx-auto p-4 flex justify-center items-center">
           <div className="flex-1 flex justify-start">
             {/* TODO プライバシー利用規約に関しては固まり次第実装 */}
-            {/* <div className="space-x-4 mr-3">プライバシー</div>
-            <div className="space-x-4">利用規約</div> */}
           </div>
           <div className="text-gray-500 text-center">© 2024 - Re-Light. All rights reserved.</div>
           <div className="flex-1"></div>

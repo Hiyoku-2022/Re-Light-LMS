@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getAuth, confirmPasswordReset } from "firebase/auth";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState("");
@@ -12,7 +12,6 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // クエリパラメータから oobCode を取得（Firebase から提供されたリセットコード）
   const oobCode = searchParams.get("oobCode");
 
   const handlePasswordReset = async () => {
@@ -26,7 +25,6 @@ export default function ResetPasswordPage() {
       await confirmPasswordReset(auth, oobCode, newPassword);
       setMessage("パスワードのリセットに成功しました。ログインページに移動します。");
       
-      // 3秒後にログインページにリダイレクト
       setTimeout(() => {
         router.push("/");
       }, 3000);

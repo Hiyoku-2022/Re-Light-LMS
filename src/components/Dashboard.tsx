@@ -1,23 +1,23 @@
 "use client"; 
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/UI/Card";
 import Image from "next/image";
 import Link from "next/link";
 import LearningProgressCalendar from "@/components/LearningProgressCalendar";
-import { db } from "@/firebase"; // Firebase インスタンスのインポート
-import { doc, getDoc } from "firebase/firestore"; // Firestore からのデータ取得用
+import { db } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { Header } from "@/components/UI/Header";
 
 export function Dashboard() {
   const [tutorialsCount, setTutorialsCount] = useState(0);
   const [problemsCount, setProblemsCount] = useState(0);
   const [totalWatchTime, setTotalWatchTime] = useState("0:00");
 
-  // Firestore からデータを取得して状態に保存
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const docRef = doc(db, "users", "USER_ID"); // ここでユーザーIDを指定
+        const docRef = doc(db, "users", "USER_ID");
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const userData = docSnap.data();
@@ -34,14 +34,7 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <div className="flex items-center space-x-2">
-            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="h-10 w-10" />
-            <span className="text-xl text-soft-blue font-semibold">Re-Light LMS</span>
-          </div>
-        </div>
-      </header>
+      <Header dashboardType="user" onToggleSidebar={() => {}} />
       <main className="container mx-auto p-4">
         {/* 学習進捗と進捗状況を横並びにする */}
         <section className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
@@ -142,9 +135,15 @@ export function Dashboard() {
           </div>
         </section>
       </main>
-      <footer className="bg-white shadow mt-8">
-        <div className="container mx-auto p-4 flex justify-between">
-          <div className="text-gray-500">© 2024 - Re-Light. All rights reserved.</div>
+      <footer className="bg-white shadow mt-auto">
+        <div className="container mx-auto p-4 flex justify-center items-center">
+          <div className="flex-1 flex justify-start">
+            {/* TODO プライバシー利用規約に関しては固まり次第実装 */}
+            {/* <div className="space-x-4 mr-3">プライバシー</div>
+            <div className="space-x-4">利用規約</div> */}
+          </div>
+          <div className="text-gray-500 text-center">© 2024 - Re-Light. All rights reserved.</div>
+          <div className="flex-1"></div>
         </div>
       </footer>
     </div>

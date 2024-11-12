@@ -27,6 +27,7 @@ const config: Config = {
         "light-blue": "#1D4ED8",
         "light-gray": "#374151",
         "sky-blue": "#83AEEC",
+        "soft-sky": "#DBEAFE",
         "border": "hsl(var(--border))",
         "input": "hsl(var(--input))",
         "ring": "hsl(var(--ring))",

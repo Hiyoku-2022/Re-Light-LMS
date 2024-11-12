@@ -1,6 +1,6 @@
 "use client";
 
-import AdminSignUpForm from "@/components/forms/AdminSignUpForm"; // AdminSignUpForm をインポート
+import AdminSignUpForm from "@/components/Forms/AdminSignUpForm";
 
 export default function AdminPage() {
   return (

@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // useRouter フックを使用
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { auth, db } from "@/firebase"; // Firebaseの設定をインポート
-import { createUserWithEmailAndPassword } from "firebase/auth"; // Firebase Authentication
-import { doc, setDoc } from "firebase/firestore"; // Firestore へのデータ保存
-import { toast, ToastContainer } from "react-toastify"; // toast と ToastContainer をインポート
-import "react-toastify/dist/ReactToastify.css"; // toastify のスタイルシートをインポート
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
+import { auth, db } from "@/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface CompanySignUpFormProps {
   onSwitchForm: (formType: "signup" | "login" | "passwordReset" | "companyLogin") => void;
@@ -25,15 +25,12 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // ランダムな企業コードを生成する関数
   const generateCompanyCode = () => {
     return `COMP-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
   };
 
-  // サインアップ処理
   const handleSignUp = async () => {
     if (password !== confirmPassword) {
-      // パスワード不一致のトーストを表示
       toast.error("パスワードが一致しません。", {
         position: "top-center",
         autoClose: 3000,
@@ -46,40 +43,36 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
     setLoading(true);
 
     try {
-      // Firebase Authentication でユーザーを作成
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
       if (userCredential.user) {
-        // 企業コードを生成
         const companyCode = generateCompanyCode();
 
-        // Firestore に企業情報を保存
         await setDoc(doc(db, "companies", userCredential.user.uid), {
           companyName: companyName,
           contactName: contactName,
           email: email,
           companyCode: companyCode,
-          role: "companyRepresentative", // ロールを追加
+          role: "companyRepresentative",
           createdAt: new Date().toISOString(),
         });
 
-        // 企業登録完了メールを送信
         await fetch("/api/email", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            type: "companySignup", // メールテンプレートタイプ
-            to: email, // 受信者のメールアドレス
-            userName: contactName, // 担当者名を送信
-            companyCode: companyCode, // 自動生成された企業コード
+            type: "companySignup",
+            to: email,
+            userName: contactName,
+            companyCode: companyCode,
           }),
         });
 
         // 成功時のトーストを表示
         toast.success("サインアップが完了しました！企業コードがメールで送信されました。", {
-          position: "top-center", // トーストを画面上部中央に配置
+          position: "top-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -88,16 +81,15 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
           progress: undefined,
           style: {
             fontSize: "14px",
-            maxWidth: "300px", // トーストの最大幅を設定
-            padding: "10px", // パディングを調整
-            margin: "0 auto", // 自動マージンで中央に配置
+            maxWidth: "300px",
+            padding: "10px",
+            margin: "0 auto",
             background: "#B0E57C",
             textAlign: "center",
             borderRadius: "8px",
           },
         });
 
-        // 3秒後にダッシュボードにリダイレクト
         setTimeout(() => {
           router.push("/companydashboard");
         }, 3000);
@@ -105,7 +97,6 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
     } catch (error: any) {
       console.error("サインアップエラー:", error);
 
-      // Firebase エラーコードに応じてエラートーストを表示
       let errorMessage = (
         <div>
           サインアップに失敗しました。
@@ -138,7 +129,6 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
         );
       }
       
-      // エラートーストを表示
       toast.error(errorMessage, {
         position: "top-center",
         autoClose: 3000,
@@ -164,7 +154,7 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
 
   return (
     <div className="w-full max-w-md p-4 space-y-3 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[80vh]">
-      <ToastContainer /> {/* ToastContainer を追加 */}
+      <ToastContainer />
       <CardHeader>
         <CardTitle className="text-center text-xl font-semibold">企業アカウント作成</CardTitle>
       </CardHeader>

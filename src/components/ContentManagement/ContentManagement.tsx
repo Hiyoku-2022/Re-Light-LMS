@@ -52,24 +52,20 @@ export default function ContentManagement() {
     console.log("Document written with ID: ", docRef.id);
   };
 
-  // コンテンツの更新
   const updateContent = async (id: string, updatedContent: { title: string; description: string; tags: string[]; elements: Element[] }) => {
     const contentRef = doc(db, "contents", id);
     await updateDoc(contentRef, updatedContent);
   };
 
-  // コンテンツの削除
   const deleteContent = async (id: string) => {
     const contentRef = doc(db, "contents", id);
     await deleteDoc(contentRef);
   };
 
-  // コンテンツを選択して編集フォームを表示
   const selectContentForEdit = (content: Content) => {
     setSelectedContent(content);
   };
 
-  // コンテンツの並び替え処理（order を更新）
   const handleReorder = async (reorderedContents: Content[]) => {
     reorderedContents.forEach(async (content, index) => {
       const contentRef = doc(db, "contents", content.id);
@@ -77,21 +73,17 @@ export default function ContentManagement() {
     });
   };
 
-  // 各コンテンツ内の要素を並び替える関数
   const handleElementReorder = async (contentId: string, reorderedElements: Element[]) => {
     const contentIndex = contents.findIndex((content) => content.id === contentId);
     if (contentIndex === -1) return;
 
-    // 並び替えた要素の order を更新
     reorderedElements.forEach((element, index) => {
       element.order = index + 1;
     });
 
-    // Firestore の該当コンテンツの `elements` を更新
     const contentRef = doc(db, "contents", contentId);
     await updateDoc(contentRef, { elements: reorderedElements });
 
-    // ローカル state も更新
     const updatedContents = [...contents];
     updatedContents[contentIndex].elements = reorderedElements;
     setContents(updatedContents);

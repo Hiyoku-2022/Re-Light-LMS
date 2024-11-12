@@ -57,7 +57,6 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     ]);
   };
 
-  // 要素を削除する関数
   const removeElement = (index: number) => {
     setElements((prevElements) => prevElements.filter((_, i) => i !== index));
   };
@@ -90,7 +89,6 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     });
   };
 
-  // 画像をアップロードする関数
   const handleImageUpload = async (index: number, file: File) => {
     const storageRef = ref(storage, `images/${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -108,7 +106,6 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
         setUploading(false);
       },
       async () => {
-        // アップロード完了後にダウンロードURLを取得
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         updateElement(index, "url", downloadURL);
         setUploading(false);
@@ -117,7 +114,6 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     );
   };
 
-  // 画像がロードされた際にサイズを取得する関数
   const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>, index: number) => {
     const img = event.currentTarget;
     updateElement(index, "width", img.naturalWidth);

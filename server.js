@@ -8,7 +8,6 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   createServer((req, res) => {
-    // URLを解析してNext.jsに渡す
     const parsedUrl = parse(req.url, true);
     handle(req, res, parsedUrl);
   }).listen(process.env.PORT || 8080, (err) => {

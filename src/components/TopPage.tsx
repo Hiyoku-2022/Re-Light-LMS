@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/UI/Button";
+import { Card } from "@/components/UI/Card";
 import Link from "next/link";
 import Image from "next/image";
-import { SignupForm } from "@/components/forms/UserSignupForm";
-import { UserLoginForm } from "@/components/forms/UserLoginForm";
-import { CompanySignUpForm } from "@/components/forms/CompanySignUpForm";
-import { CompanyLoginForm } from "@/components/forms/CompanyLoginForm";
-import { PasswordResetRequestForm } from "@/components/forms/PasswordResetRequestForm";
+import { SignupForm } from "@/components/Forms/UserSignupForm";
+import { UserLoginForm } from "@/components/Forms/UserLoginForm";
+import { CompanySignUpForm } from "@/components/Forms/CompanySignUpForm";
+import { CompanyLoginForm } from "@/components/Forms/CompanyLoginForm";
+import { PasswordResetRequestForm } from "@/components/Forms/PasswordResetRequestForm";
 
 export function TopPage() {
   const [showModal, setShowModal] = useState(false);
@@ -63,7 +63,7 @@ export function TopPage() {
             ) : currentForm === "passwordReset" ? (
               <PasswordResetRequestForm onSwitchForm={(formType) => setCurrentForm(formType)} />
             ) : (
-              <SignupForm onSwitchForm={(formType) => setCurrentForm(formType)} /> // デフォルトでサインアップフォームを表示
+              <SignupForm onSwitchForm={(formType) => setCurrentForm(formType)} />
             )}
           </div>
         </div>
@@ -78,7 +78,7 @@ export function TopPage() {
           <div className="space-x-4">
             <Button
               variant="outline"
-              className="bg-soft-blue text-white"
+              className="bg-soft-blue text-white hover:text-gray-400"
               onClick={() => {
                 setCurrentForm("signup");
                 toggleModal();
@@ -106,16 +106,16 @@ export function TopPage() {
             <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-4 mt-10">
               <Button
                 variant="default"
-                className="bg-light-green text-white mb-2 md:mb-0 w-3/4 md:w-auto"
+                className="bg-light-green text-white hover:text-gray-400 mb-2 md:mb-0 w-3/4 md:w-auto"
                 onClick={() => {
-                  setCurrentForm("signup");
+                  setCurrentForm("login");
                   toggleModal();
                 }}
               >
                 ユーザー登録 / ログイン
               </Button>
               <Button
-                className="bg-light-green text-white mb-2 md:mb-0 w-3/4 md:w-auto"
+                className="bg-light-green text-white hover:text-gray-400 mb-2 md:mb-0 w-3/4 md:w-auto"
                 onClick={() => {
                   setCurrentForm("companyLogin");
                   toggleModal();

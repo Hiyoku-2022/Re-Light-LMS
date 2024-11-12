@@ -2,7 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Content } from "./ContentManagement";
-import Modal from "@/components/ui/Modal";
+import Modal from "@/components/UI/Modal";
 
 interface ContentListProps {
   contents: Content[];
@@ -80,7 +80,6 @@ export default function ContentList({
                           <button onClick={() => onEditContent(content)} className="bg-blue-500 text-white px-2 py-1 rounded">
                             編集
                           </button>
-                          {/* プレビューボタン */}
                           <button
                             onClick={() => setPreviewContent(content)}
                             className="bg-green-500 text-white px-2 py-1 rounded"
@@ -159,7 +158,6 @@ export default function ContentList({
         </Droppable>
       </DragDropContext>
 
-      {/* プレビューモーダル */}
       {previewContent && (
         <Modal onClose={() => setPreviewContent(null)}>
           <div className="p-4">

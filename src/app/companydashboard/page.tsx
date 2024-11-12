@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { auth, db } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { CompanyDashboard } from "@/components/CompanyDashboard";
-import { ClipLoader } from "react-spinners"; // ClipLoader をインポート
+import { ClipLoader } from "react-spinners";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -13,16 +14,9 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkUserRole = async () => {
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) {
-        router.push("/");
-        return;
-      }
-
+    const checkUserRole = async (user: any) => {
       try {
-        const userDoc = await getDoc(doc(db, "companies", currentUser.uid));
+        const userDoc = await getDoc(doc(db, "companies", user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
           if (userData?.role === "companyRepresentative") {
@@ -41,7 +35,16 @@ export default function Home() {
       }
     };
 
-    checkUserRole();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        checkUserRole(user);
+      } else {
+        router.push("/");
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
   if (loading) {

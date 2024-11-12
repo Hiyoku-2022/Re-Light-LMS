@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // useRouter をインポート
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { signInWithEmailAndPassword } from "firebase/auth"; // Firebase のログイン関数をインポート
-import { auth } from "@/firebase"; // Firebase の設定ファイルをインポート
-import { toast, ToastContainer } from "react-toastify"; // toast 関数と ToastContainer をインポート
-import "react-toastify/dist/ReactToastify.css"; // toastify のスタイルシートをインポート
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/UI/Card";
+import { Label } from "@/components/UI/Label";
+import { Input } from "@/components/UI/Input";
+import { Button } from "@/components/UI/Button";
+import { setPersistence, browserLocalPersistence, signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/firebase";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface CompanyLoginFormProps {
-  onSwitchForm: (formType: "companyPreSignup" | "passwordReset" | "companyCodeRequest") => void; // フォーム切り替え用の関数
+  onSwitchForm: (formType: "companyPreSignup" | "passwordReset" | "companyCodeRequest") => void;
 }
 
 export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.Element {
@@ -23,39 +23,16 @@ export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.E
 
   // ログイン処理
   const handleLogin = async () => {
-    setLoading(true); // ローディング状態を設定
+    setLoading(true);
     try {
-      // Firebase Authentication を使用してログイン
+      await setPersistence(auth, browserLocalPersistence);
+
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // ログイン成功した場合、トースト通知を表示し、3秒後に`/companydashboard` へリダイレクト
-      toast.success("ログインに成功しました！企業ダッシュボードに移動します。", {
-        position: "top-center", // トーストを画面上部中央に配置
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
-        style: {
-          fontSize: "14px",
-          maxWidth: "300px", // トーストの最大幅を設定
-          padding: "10px", // パディングを調整
-          margin: "0 auto", // 自動マージンで中央に配置
-          background: "#B0E57C",
-          textAlign: "center",
-          borderRadius: "8px",
-        },
-    });
-
-      setTimeout(() => {
-        router.push("/companydashboard");
-      }, 3000); // 3秒後にダッシュボードにリダイレクト
+      router.push("/companydashboard");
     } catch (error: any) {
-      // ログインエラー時の処理
       console.error("ログインエラー:", error);
 
-      // エラーに応じたトースト通知を表示
       let errorMessage = (
         <div>
           ログインに失敗しました。
@@ -109,13 +86,13 @@ export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.E
         },
       });
     } finally {
-      setLoading(false); // ローディング状態を解除
+      setLoading(false);
     }
   };
 
   return (
     <div className="w-full max-w-md p-4 space-y-3 bg-white rounded-lg shadow-lg overflow-y-auto max-h-[80vh]">
-      <ToastContainer /> {/* トースト表示用のコンテナ */}
+      <ToastContainer />
       <CardHeader>
         <CardTitle className="text-center text-xl font-semibold">企業ログイン</CardTitle>
       </CardHeader>
@@ -130,7 +107,7 @@ export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.E
             type="email"
             className="h-10"
             required
-            disabled={loading} // ローディング中は入力を無効化
+            disabled={loading}
           />
         </div>
         <div className="space-y-1">
@@ -143,7 +120,7 @@ export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.E
             type="password"
             className="h-10"
             required
-            disabled={loading} // ローディング中は入力を無効化
+            disabled={loading}
           />
         </div>
       </CardContent>
