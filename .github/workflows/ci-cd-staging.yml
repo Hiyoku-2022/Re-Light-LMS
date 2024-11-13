@@ -58,16 +58,16 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build --platform linux/amd64 --build-arg ENV_FILE=.env.staging -t asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging:latest .
+          docker build --platform linux/amd64 --build-arg ENV_FILE=.env.staging -t asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging/my-app-staging:latest .
 
       - name: Push Docker image to Artifact Registry
         run: |
-          docker push asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging:latest
+          docker push asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging/my-app-staging:latest
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy re-light-staging \
-            --image asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging \
+            --image asia-northeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-staging/my-app-staging:latest \
             --region asia-northeast2 \
             --platform managed \
             --allow-unauthenticated
