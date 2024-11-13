@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { Header } from "@/components/UI/Header";
 
 interface Content {
   title: string;
@@ -86,14 +87,7 @@ export default function ContentPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <div className="flex items-center space-x-2">
-            <Image src="/Logo.svg" alt="Logo" width={40} height={40} className="h-10 w-10" />
-            <span className="text-xl text-soft-blue">Re-Light LMS</span>
-          </div>
-        </div>
-      </header>
+      <Header dashboardType="user" onToggleSidebar={() => {}} />
       <div className="p-6 max-w-4xl mx-auto bg-white rounded shadow-lg mt-4">
         <h1 className="text-3xl font-bold mb-4">{content.title}</h1>
         <div className="prose">

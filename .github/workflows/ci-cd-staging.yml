@@ -43,6 +43,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Generate .env.staging file
+        run: echo "${{ secrets.STAGING_ENV_CONTENT }}" > .env.staging
+
       - name: Authenticate with GCP
         run: |
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 --decode > /tmp/keyfile.json

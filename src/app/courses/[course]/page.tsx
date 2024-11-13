@@ -5,6 +5,7 @@ import { db } from "@/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import React from "react";
+import { Header } from "@/components/UI/Header";
 
 interface Content {
   id: string;
@@ -47,8 +48,9 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
   }, [courseName]);
   
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto bg-white p-6 shadow rounded">
+    <div className="min-h-screen bg-gray-100">
+      <Header dashboardType="user" onToggleSidebar={() => {}} />
+      <div className="max-w-4xl mx-auto my-4 bg-white p-6 shadow rounded">
         <h1 className="text-2xl font-bold mb-4">
           {courseName.toUpperCase()} コース
         </h1>

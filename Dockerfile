@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . .
 
-ARG ENV_FILE=.env.development
+ARG ENV_FILE
 COPY ${ENV_FILE} /app/.env.local
 
 RUN npm install --save-dev jest cypress
