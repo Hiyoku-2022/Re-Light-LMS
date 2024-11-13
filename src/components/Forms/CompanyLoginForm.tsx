@@ -21,14 +21,11 @@ export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.E
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // ログイン処理
   const handleLogin = async () => {
     setLoading(true);
     try {
       await setPersistence(auth, browserLocalPersistence);
-
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
+      await signInWithEmailAndPassword(auth, email, password);
       router.push("/companydashboard");
     } catch (error: any) {
       console.error("ログインエラー:", error);
@@ -71,10 +68,6 @@ export function CompanyLoginForm({ onSwitchForm }: CompanyLoginFormProps): JSX.E
         position: "top-center",
         autoClose: 3000,
         hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
         style: {
           fontSize: "14px",
           maxWidth: "300px",

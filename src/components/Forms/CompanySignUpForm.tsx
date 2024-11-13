@@ -49,10 +49,10 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
         const companyCode = generateCompanyCode();
 
         await setDoc(doc(db, "companies", userCredential.user.uid), {
-          companyName: companyName,
-          contactName: contactName,
-          email: email,
-          companyCode: companyCode,
+          companyName,
+          contactName,
+          email,
+          companyCode,
           role: "companyRepresentative",
           createdAt: new Date().toISOString(),
         });
@@ -66,11 +66,10 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
             type: "companySignup",
             to: email,
             userName: contactName,
-            companyCode: companyCode,
+            companyCode,
           }),
         });
 
-        // 成功時のトーストを表示
         toast.success("サインアップが完了しました！企業コードがメールで送信されました。", {
           position: "top-center",
           autoClose: 3000,
@@ -92,6 +91,7 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
 
         setTimeout(() => {
           router.push("/companydashboard");
+          setLoading(false);
         }, 3000);
       }
     } catch (error: any) {
@@ -147,7 +147,6 @@ export function CompanySignUpForm({ onSwitchForm }: CompanySignUpFormProps): JSX
           borderRadius: "8px",
         },
       });
-    } finally {
       setLoading(false);
     }
   };

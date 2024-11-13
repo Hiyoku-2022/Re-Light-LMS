@@ -24,50 +24,56 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [companyCode, setCompanyCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSignUp = async () => {
-    try {
-      if (password !== confirmPassword) {
-        toast.error("パスワードが一致しません。", {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: false,
-          progress: undefined,
-          style: {
-            fontSize: "14px",
-            maxWidth: "300px",
-            padding: "10px",
-            margin: "0 auto",
-            background: "#ffcccb",
-            textAlign: "center",
-            borderRadius: "8px",
-          },
-        });
-        return;
-      }
+    if (password !== confirmPassword) {
+      toast.error("パスワードが一致しません。", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        style: {
+          fontSize: "14px",
+          maxWidth: "300px",
+          padding: "10px",
+          margin: "0 auto",
+          background: "#ffcccb",
+          textAlign: "center",
+          borderRadius: "8px",
+        },
+      });
+      return;
+    }
 
+    setLoading(true);
+
+    try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
       if (userCredential.user) {
         await setDoc(doc(db, "users", userCredential.user.uid), {
-          name: name,
-          email: email,
-          isCompanyUser: isCompanyUser,
+          name,
+          email,
+          isCompanyUser,
           companyCode: isCompanyUser ? companyCode : null,
         });
 
-        toast.success("サインアップが完了しました！", {
+        await fetch("/api/email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "signup",
+            to: email,
+            userName: name,
+          }),
+        });
+
+        toast.success("サインアップが完了しました！確認メールが送信されました。", {
           position: "top-center",
           autoClose: 2000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: false,
-          progress: undefined,
           style: {
             fontSize: "14px",
             maxWidth: "300px",
@@ -81,12 +87,13 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
 
         setTimeout(() => {
           router.push("/dashboard");
+          setLoading(false);
         }, 3000);
       }
     } catch (error: any) {
       console.error("サインアップエラー:", error);
-
       let errorMessage = "サインアップに失敗しました。もう一度お試しください。";
+
       if (error.code === "auth/email-already-in-use") {
         errorMessage = "このメールアドレスは既に使用されています。";
       } else if (error.code === "auth/invalid-email") {
@@ -95,34 +102,20 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
         errorMessage = "パスワードが短すぎます。6文字以上のパスワードを設定してください。";
       }
 
-      toast.error(
-        <div>
-          {errorMessage.split("。").map((msg, index) => (
-            <p key={index} style={{ margin: 0 }}>
-              {msg}
-              {index !== errorMessage.split("。").length - 1 && "。"}
-            </p>
-          ))}
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: false,
-          progress: undefined,
-          style: {
-            fontSize: "14px",
-            maxWidth: "300px",
-            padding: "10px",
-            margin: "0 auto",
-            background: "#ffcccb",
-            textAlign: "center",
-            borderRadius: "8px",
-          },
-        }
-      );
+      toast.error(errorMessage, {
+        position: "top-center",
+        autoClose: 3000,
+        style: {
+          fontSize: "14px",
+          maxWidth: "300px",
+          padding: "10px",
+          margin: "0 auto",
+          background: "#ffcccb",
+          textAlign: "center",
+          borderRadius: "8px",
+        },
+      });
+      setLoading(false);
     }
   };
 
@@ -135,34 +128,34 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
       <CardContent className="space-y-2">
         <div className="space-y-1">
           <Label htmlFor="name">名前</Label>
-          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="名前" className="h-10" />
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="名前" className="h-10" disabled={loading} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="email">メール</Label>
-          <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="メール" type="email" className="h-10" />
+          <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="メール" type="email" className="h-10" disabled={loading} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="password">パスワード</Label>
-          <Input id="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="パスワード" type="password" className="h-10" />
+          <Input id="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="パスワード" type="password" className="h-10" disabled={loading} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="confirm-password">パスワード確認</Label>
-          <Input id="confirm-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="パスワード確認" type="password" className="h-10" />
+          <Input id="confirm-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="パスワード確認" type="password" className="h-10" disabled={loading} />
         </div>
         <div className="flex items-center space-x-2">
-          <Checkbox id="company-user" checked={isCompanyUser} onCheckedChange={(checked) => setIsCompanyUser(!!checked)} style={{ backgroundColor: "#B0E57C" }} />
+          <Checkbox id="company-user" checked={isCompanyUser} onCheckedChange={(checked) => setIsCompanyUser(!!checked)} disabled={loading} style={{ backgroundColor: "#B0E57C" }} />
           <Label htmlFor="company-user">企業ユーザー</Label>
         </div>
         {isCompanyUser && (
           <div className="space-y-1">
             <Label htmlFor="company-code">会社コード</Label>
-            <Input id="company-code" value={companyCode} onChange={(e) => setCompanyCode(e.target.value)} placeholder="会社コード" className="h-10" />
+            <Input id="company-code" value={companyCode} onChange={(e) => setCompanyCode(e.target.value)} placeholder="会社コード" className="h-10" disabled={loading} />
           </div>
         )}
       </CardContent>
       <CardFooter>
-        <Button className="w-full bg-[#B0E57C] text-white h-10" onClick={handleSignUp}>
-          サインアップ
+        <Button className="w-full bg-[#B0E57C] text-white h-10" onClick={handleSignUp} disabled={loading}>
+          {loading ? "登録中..." : "サインアップ"}
         </Button>
       </CardFooter>
       <p className="text-center text-sm text-muted-foreground">

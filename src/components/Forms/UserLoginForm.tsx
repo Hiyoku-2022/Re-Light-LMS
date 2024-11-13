@@ -18,9 +18,11 @@ interface UserLoginFormProps {
 export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dashboard");
@@ -49,10 +51,6 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
           position: "top-center",
           autoClose: 3000,
           hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: false,
-          progress: undefined,
           style: {
             fontSize: "14px",
             maxWidth: "300px",
@@ -64,6 +62,8 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
           },
         }
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,6 +82,7 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
             onChange={(e) => setEmail(e.target.value)}
             placeholder="メールアドレス"
             className="h-10"
+            disabled={loading}
           />
         </div>
         <div className="space-y-1">
@@ -93,12 +94,17 @@ export function UserLoginForm({ onSwitchForm }: UserLoginFormProps): JSX.Element
             onChange={(e) => setPassword(e.target.value)}
             placeholder="パスワード"
             className="h-10"
+            disabled={loading}
           />
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full bg-[#B0E57C] text-white h-10 mt-4" onClick={handleLogin}>
-          ログイン
+        <Button
+          className="w-full bg-[#B0E57C] text-white h-10 mt-4"
+          onClick={handleLogin}
+          disabled={loading}
+        >
+          {loading ? "ログイン中..." : "ログイン"}
         </Button>
       </CardFooter>
       <p className="text-center text-sm text-muted-foreground">
