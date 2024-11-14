@@ -1,0 +1,48 @@
+name: CI/CD Pipeline for Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Generate .env.production file
+        run: echo "${{ secrets.PRODUCTION_ENV_CONTENT }}" > .env.production
+
+      - name: Authenticate with GCP
+        run: |
+          echo "${{ secrets.PROD_GCP_SERVICE_ACCOUNT_KEY }}" | base64 --decode > /tmp/keyfile.json
+          gcloud auth activate-service-account --key-file=/tmp/keyfile.json
+          gcloud --quiet config set project ${{ secrets.PROD_GCP_PROJECT_ID }}
+
+      - name: Authenticate Docker with GCP
+        run: |
+          gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build --platform linux/amd64 --build-arg ENV_FILE=.env.production -t asia-northeast1-docker.pkg.dev/re-light/my-app-production/my-app-production:latest .
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push asia-northeast1-docker.pkg.dev/re-light/my-app-production/my-app-production:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy re-light-production \
+            --image asia-northeast1-docker.pkg.dev/re-light/my-app-production/my-app-production:latest \
+            --region asia-northeast1 \
+            --platform managed \
+            --allow-unauthenticated
