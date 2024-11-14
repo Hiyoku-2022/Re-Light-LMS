@@ -1,6 +1,6 @@
 module.exports = {
-  presets: [
-    'next/babel',
-    '@babel/preset-typescript'
-  ],
+  presets: ["next/babel"],
+  plugins: [
+    "@babel/plugin-transform-private-methods"
+  ]
 };
