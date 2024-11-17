@@ -11,6 +11,7 @@ import { auth, db } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
+import { initializeUserProgress } from "@/utils/progressService";
 import "react-toastify/dist/ReactToastify.css";
 
 interface SignupFormProps {
@@ -52,13 +53,20 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
       if (userCredential.user) {
-        await setDoc(doc(db, "users", userCredential.user.uid), {
+        const userId = userCredential.user.uid;
+
+        // ユーザー情報をFirestoreに保存
+        await setDoc(doc(db, "users", userId), {
           name,
           email,
           isCompanyUser,
           companyCode: isCompanyUser ? companyCode : null,
         });
 
+        // ProgressDBの初期化
+        await initializeUserProgress(userId);
+
+        // 確認メールを送信
         await fetch("/api/email", {
           method: "POST",
           headers: {
@@ -85,6 +93,7 @@ export function SignupForm({ onSwitchForm }: SignupFormProps): JSX.Element {
           },
         });
 
+        // ダッシュボードにリダイレクト
         setTimeout(() => {
           router.push("/dashboard");
           setLoading(false);

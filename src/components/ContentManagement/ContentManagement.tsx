@@ -2,38 +2,66 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/firebase";
-import { collection, query, orderBy, addDoc, updateDoc, deleteDoc, onSnapshot, doc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  doc,
+  getDocs,
+  where,
+} from "firebase/firestore";
 import ContentList from "./ContentList";
 import ContentForm from "./ContentForm";
+import { initializeProgress, updateProgressForReorderedContents } from "@/utils/progressService";
 
 export interface Content {
   id: string;
   title: string;
   description: string;
-  order: number;
+  stepOrder: number;
   tags: string[];
-  elements: Element[];
+  type: "content" | "task";
+  elements?: Element[];
+  task?: Task;
 }
 
 interface Element {
   id: string;
-  type: "text" | "video" | "image" | "code";
+  elementType: "text" | "video" | "image" | "code";
   url?: string;
   content?: string;
   caption?: string;
-  order: number;
+  elementOrder: number;
   style?: React.CSSProperties;
   width?: number;
   height?: number;
+}
+
+interface Task {
+  taskText: string;
+  sampleCode: string;
+  testCases: TestCase[];
+  modelAnswer: string;
+  hint: string;
+  previewCode?: string;
+}
+
+interface TestCase {
+  input: string;
+  expectedOutput: string;
 }
 
 export default function ContentManagement() {
   const [contents, setContents] = useState<Content[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
 
-  // Firestore からデータを取得して state を更新
+  // Firestoreからデータを取得してstateを更新
   useEffect(() => {
-    const q = query(collection(db, "contents"), orderBy("order"));
+    const q = query(collection(db, "contents"), orderBy("stepOrder"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const contentList: Content[] = [];
       snapshot.forEach((doc) => {
@@ -45,48 +73,135 @@ export default function ContentManagement() {
     return () => unsubscribe();
   }, []);
 
+  // 全ユーザーのProgressDBを初期化
+  const initializeProgressForAllUsers = async (
+    contentId: string,
+    type: "content" | "task",
+    tag: string,
+    stepOrder: number
+  ) => {
+    const userSnapshot = await getDocs(collection(db, "users"));
+    const promises = userSnapshot.docs.map((userDoc) => {
+      const userId = userDoc.id;
+      return initializeProgress(userId, contentId, type, tag, stepOrder);
+    });
+
+    await Promise.all(promises);
+    console.log("Progress initialized for all users for content ID:", contentId);
+  };
+
   // コンテンツの追加
-  const addContent = async (newContent: { title: string; description: string; tags: string[]; elements: Element[] }) => {
-    const newOrder = contents.length > 0 ? contents[contents.length - 1].order + 1 : 1;
-    const docRef = await addDoc(collection(db, "contents"), { ...newContent, order: newOrder });
-    console.log("Document written with ID: ", docRef.id);
+  const addContent = async (newContent: {
+    title: string;
+    description: string;
+    tags: string[];
+    elements: Element[];
+    type: "content" | "task";
+  }) => {
+    if (!newContent.tags || newContent.tags.length === 0) {
+      console.error("タグが設定されていません。");
+      alert("タグは必須です。");
+      return;
+    }
+
+    const newOrder = contents.length > 0 ? contents[contents.length - 1].stepOrder + 1 : 1;
+
+    try {
+      const docRef = await addDoc(collection(db, "contents"), {
+        ...newContent,
+        stepOrder: newOrder,
+      });
+
+      const contentId = docRef.id;
+      await initializeProgressForAllUsers(contentId, newContent.type, newContent.tags[0], newOrder);
+
+      console.log("Document written with ID: ", docRef.id);
+    } catch (error) {
+      console.error("コンテンツ追加中にエラーが発生しました:", error);
+      alert("コンテンツの追加中に問題が発生しました。");
+    }
   };
 
-  const updateContent = async (id: string, updatedContent: { title: string; description: string; tags: string[]; elements: Element[] }) => {
+  // コンテンツの更新
+  const updateContent = async (
+    id: string,
+    updatedContent: {
+      title: string;
+      description: string;
+      tags: string[];
+      elements: Element[];
+      stepOrder: number;
+    }
+  ) => {
     const contentRef = doc(db, "contents", id);
-    await updateDoc(contentRef, updatedContent);
+    const previousContent = contents.find((content) => content.id === id);
+
+    try {
+      await updateDoc(contentRef, updatedContent);
+
+      if (previousContent) {
+        const { tags: previousTags, stepOrder: previousStepOrder } = previousContent;
+        const [previousTag] = previousTags;
+
+        if (previousTag !== updatedContent.tags[0] || previousStepOrder !== updatedContent.stepOrder) {
+          console.log("ProgressDB updated for content ID:", id);
+        }
+      }
+    } catch (error) {
+      console.error("コンテンツ更新中にエラーが発生しました:", error);
+      alert("コンテンツ更新中に問題が発生しました。");
+    }
   };
 
+  // コンテンツの削除
   const deleteContent = async (id: string) => {
     const contentRef = doc(db, "contents", id);
-    await deleteDoc(contentRef);
+
+    try {
+      await deleteDoc(contentRef);
+
+      const progressQuery = query(collection(db, "progress"), where("contentId", "==", id));
+      const progressSnapshot = await getDocs(progressQuery);
+      const deletePromises = progressSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+
+      await Promise.all(deletePromises);
+      console.log("Deleted content and associated ProgressDB entries for content ID:", id);
+    } catch (error) {
+      console.error("コンテンツ削除中にエラーが発生しました:", error);
+      alert("コンテンツ削除中に問題が発生しました。");
+    }
   };
 
-  const selectContentForEdit = (content: Content) => {
-    setSelectedContent(content);
-  };
-
+  // 順序変更時の処理
   const handleReorder = async (reorderedContents: Content[]) => {
-    reorderedContents.forEach(async (content, index) => {
-      const contentRef = doc(db, "contents", content.id);
-      await updateDoc(contentRef, { order: index + 1 });
-    });
-  };
+    try {
+      // Firestoreでコンテンツの順序を更新
+      const updateContentPromises = reorderedContents.map(async (content, index) => {
+        const contentRef = doc(db, "contents", content.id);
+        await updateDoc(contentRef, { stepOrder: index + 1 });
+      });
 
-  const handleElementReorder = async (contentId: string, reorderedElements: Element[]) => {
-    const contentIndex = contents.findIndex((content) => content.id === contentId);
-    if (contentIndex === -1) return;
+      await Promise.all(updateContentPromises);
 
-    reorderedElements.forEach((element, index) => {
-      element.order = index + 1;
-    });
+      // ProgressDBでstepOrderを更新
+      const userSnapshot = await getDocs(collection(db, "users"));
+      const reorderedData = reorderedContents.map((content, index) => ({
+        contentId: content.id,
+        tag: content.tags[0] || "untagged", // タグがない場合のデフォルト値
+        stepOrder: index + 1,
+      }));
 
-    const contentRef = doc(db, "contents", contentId);
-    await updateDoc(contentRef, { elements: reorderedElements });
+      const updateProgressPromises = userSnapshot.docs.map((userDoc) => {
+        const userId = userDoc.id;
+        return updateProgressForReorderedContents(userId, reorderedData);
+      });
 
-    const updatedContents = [...contents];
-    updatedContents[contentIndex].elements = reorderedElements;
-    setContents(updatedContents);
+      await Promise.all(updateProgressPromises);
+      console.log("Reordered contents and updated ProgressDB successfully.");
+    } catch (error) {
+      console.error("コンテンツ並べ替え中にエラーが発生しました:", error);
+      alert("並び替え中にエラーが発生しました。");
+    }
   };
 
   return (
@@ -100,9 +215,9 @@ export default function ContentManagement() {
       <ContentList
         contents={contents}
         onDeleteContent={deleteContent}
-        onEditContent={selectContentForEdit}
+        onEditContent={setSelectedContent}
         onReorder={handleReorder}
-        onElementReorder={handleElementReorder}
+        onElementReorder={() => {}}
       />
     </div>
   );
