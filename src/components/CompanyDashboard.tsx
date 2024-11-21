@@ -73,7 +73,7 @@ export function CompanyDashboard() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header dashboardType="company" onToggleSidebar={() => {}} />
-      <main className="container mx-auto p-4 flex-1 ">
+      <main className="container mx-auto p-4 pt-20 flex-1 ">
         {/* 上位ユーザーの表示セクション */}
         <section className="p-4 bg-gray-100 rounded-xl shadow mt-6">
           <CardTitle className="text-sm font-medium">総学習時間（全体概要）</CardTitle>

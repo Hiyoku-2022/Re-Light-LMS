@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Content } from "./ContentManagement";
 import { storage } from "@/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
@@ -19,7 +18,7 @@ interface TestCase {
 
 interface Task {
   taskText: string;
-  sampleCode: string;
+  sampleCode: { [filename: string]: string };
   testCases: TestCase[];
   modelAnswer: string;
   hint: string;
@@ -44,7 +43,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
   const [elements, setElements] = useState<Element[]>([]);
   const [task, setTask] = useState<Task>({
     taskText: "",
-    sampleCode: "",
+    sampleCode: {},
     testCases: [],
     modelAnswer: "",
     hint: "",
@@ -72,7 +71,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
       } else if (selectedContent.type === "task") {
         setTask({
           taskText: selectedContent.taskText || "",
-          sampleCode: selectedContent.sampleCode || "",
+          sampleCode: selectedContent.sampleCode || {},
           testCases: selectedContent.testCases || [],
           modelAnswer: selectedContent.modelAnswer || "",
           hint: selectedContent.hint || "",
@@ -95,7 +94,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     setElements([]);
     setTask({
       taskText: "",
-      sampleCode: "",
+      sampleCode: {},
       testCases: [],
       modelAnswer: "",
       hint: "",
@@ -160,6 +159,27 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     );
   };
 
+  const addSampleFile = () => {
+    const newFilename = `newFile${Object.keys(task.sampleCode).length + 1}.html`;
+    setTask({
+      ...task,
+      sampleCode: { ...task.sampleCode, [newFilename]: "" },
+    });
+  };
+
+  const updateSampleFile = (filename: string, content: string) => {
+    setTask({
+      ...task,
+      sampleCode: { ...task.sampleCode, [filename]: content },
+    });
+  };
+
+  const removeSampleFile = (filename: string) => {
+    const updatedSampleCode = { ...task.sampleCode };
+    delete updatedSampleCode[filename];
+    setTask({ ...task, sampleCode: updatedSampleCode });
+  };
+  
   const addTestCase = () => {
     setTask((prev) => ({
       ...prev,
@@ -374,6 +394,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
 
         {type === "task" && (
           <div>
+            {/* タスク問題文 */}
             <textarea
               value={task.taskText}
               onChange={(e) => setTask({ ...task, taskText: e.target.value })}
@@ -381,20 +402,51 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
               className="w-full p-2 border rounded"
             />
 
+            {/* 課題タイプの選択 */}
             <h3 className="text-lg mt-4">課題タイプ</h3>
-            <select value={taskType} onChange={(e) => setTaskType(e.target.value as "ui" | "algorithm")} className="w-full p-2 border rounded">
+            <select
+              value={taskType}
+              onChange={(e) => setTaskType(e.target.value as "ui" | "algorithm")}
+              className="w-full p-2 border rounded"
+            >
               <option value="ui">見た目に関する課題</option>
               <option value="algorithm">アルゴリズム課題</option>
             </select>
 
+            {/* UI課題用のサンプルコードとテストケース */}
             {taskType === "ui" && (
               <div>
-                <textarea
-                  value={task.sampleCode}
-                  onChange={(e) => setTask({ ...task, sampleCode: e.target.value })}
-                  placeholder="HTML/CSS/JavaScriptのサンプルコードを入力"
-                  className="w-full p-2 border rounded"
-                />
+                {/* サンプルコード */}
+                <h3 className="text-lg mt-4">サンプルコード</h3>
+                {Object.entries(task.sampleCode).map(([filename, content]) => (
+                  <div key={filename} className="p-2 border rounded mb-2 bg-white">
+                    <input
+                      value={filename}
+                      readOnly
+                      className="w-full p-2 border rounded mb-2 bg-gray-100"
+                    />
+                    <textarea
+                      value={content}
+                      onChange={(e) => updateSampleFile(filename, e.target.value)}
+                      placeholder="HTML/CSS/JavaScriptのコードを記述してください"
+                      className="w-full p-2 border rounded"
+                    />
+                    <button
+                      onClick={() => removeSampleFile(filename)}
+                      className="bg-red-500 text-white px-4 py-2 rounded mt-2"
+                    >
+                      ファイル削除
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addSampleFile}
+                  className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  ファイル追加
+                </button>
+
+                {/* テストケース */}
                 <h3 className="text-lg mt-4">テストケース</h3>
                 {task.testCases.map((testCase, index) => (
                   <div key={index} className="flex space-x-2 mb-2">
@@ -410,14 +462,22 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                       placeholder="期待されるDOM状態 (例: id='test'が存在する)"
                       className="flex-1 p-2 border rounded"
                     />
-                    <button onClick={() => removeTestCase(index)} className="bg-red-500 text-white px-2 py-1 rounded">
+                    <button
+                      onClick={() => removeTestCase(index)}
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                    >
                       削除
                     </button>
                   </div>
                 ))}
-                <button onClick={addTestCase} className="mt-2 bg-green-500 text-white px-4 py-2 rounded">
+                <button
+                  onClick={addTestCase}
+                  className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                >
                   テストケースの追加
                 </button>
+
+                {/* プレビュー編集 */}
                 <div>
                   <h3 className="text-lg mt-4">プレビュー編集</h3>
                   {isEditingPreview ? (
@@ -428,14 +488,25 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                         placeholder="プレビュー用コード"
                         className="w-full p-2 border rounded"
                       />
-                      <button onClick={handlePreviewUpload} className="mt-2 bg-blue-500 text-white px-4 py-2 rounded">
+                      <button
+                        onClick={handlePreviewUpload}
+                        className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
+                      >
                         アップロード
                       </button>
                     </div>
                   ) : (
                     <div>
-                      {task.previewCode && <iframe src={task.previewCode} className="w-full h-64 border rounded"></iframe>}
-                      <button onClick={handlePreviewEdit} className="mt-2 bg-blue-500 text-white px-4 py-2 rounded">
+                      {task.previewCode && (
+                        <iframe
+                          src={task.previewCode}
+                          className="w-full h-64 border rounded"
+                        ></iframe>
+                      )}
+                      <button
+                        onClick={handlePreviewEdit}
+                        className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
+                      >
                         編集
                       </button>
                     </div>
@@ -444,14 +515,40 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
               </div>
             )}
 
+            {/* アルゴリズム課題用のサンプルコードとテストケース */}
             {taskType === "algorithm" && (
               <div>
-                <textarea
-                  value={task.sampleCode}
-                  onChange={(e) => setTask({ ...task, sampleCode: e.target.value })}
-                  placeholder="アルゴリズムのサンプルコード (例: 関数の雛形)"
-                  className="w-full p-2 border rounded"
-                />
+                {/* サンプルコード */}
+                <h3 className="text-lg mt-4">サンプルコード</h3>
+                {Object.entries(task.sampleCode).map(([filename, content]) => (
+                  <div key={filename} className="p-2 border rounded mb-2 bg-white">
+                    <input
+                      value={filename}
+                      readOnly
+                      className="w-full p-2 border rounded mb-2 bg-gray-100"
+                    />
+                    <textarea
+                      value={content}
+                      onChange={(e) => updateSampleFile(filename, e.target.value)}
+                      placeholder="アルゴリズムの雛形を記述してください"
+                      className="w-full p-2 border rounded"
+                    />
+                    <button
+                      onClick={() => removeSampleFile(filename)}
+                      className="bg-red-500 text-white px-4 py-2 rounded mt-2"
+                    >
+                      ファイル削除
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addSampleFile}
+                  className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                >
+                  ファイル追加
+                </button>
+
+                {/* テストケース */}
                 <h3 className="text-lg mt-4">テストケース</h3>
                 {task.testCases.map((testCase, index) => (
                   <div key={index} className="flex space-x-2 mb-2">
@@ -467,17 +564,24 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                       placeholder="期待される出力 (例: 6)"
                       className="flex-1 p-2 border rounded"
                     />
-                    <button onClick={() => removeTestCase(index)} className="bg-red-500 text-white px-2 py-1 rounded">
+                    <button
+                      onClick={() => removeTestCase(index)}
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                    >
                       削除
                     </button>
                   </div>
                 ))}
-                <button onClick={addTestCase} className="mt-2 bg-green-500 text-white px-4 py-2 rounded">
+                <button
+                  onClick={addTestCase}
+                  className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                >
                   テストケースの追加
                 </button>
               </div>
             )}
 
+            {/* 模範解答とヒント */}
             <textarea
               value={task.modelAnswer}
               onChange={(e) => setTask({ ...task, modelAnswer: e.target.value })}
