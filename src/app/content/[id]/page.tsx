@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Header } from "@/components/UI/Header";
+import Player from "@vimeo/player";
+import { updateProgress } from "@/utils/progressService";
 
 interface ContentElement {
   id: string;
-  elementType: "text" | "video" | "image" | "code"; // 修正: type → elementType
+  elementType: "text" | "video" | "image" | "code";
   content?: string;
   url?: string;
   caption?: string;
@@ -21,7 +24,7 @@ interface ContentElement {
 interface Content {
   id: string;
   title: string;
-  stepOrder: number; // 修正: order → stepOrder
+  stepOrder: number;
   elements: ContentElement[];
 }
 
@@ -29,15 +32,35 @@ export default function ContentPage() {
   const params = useParams();
   const router = useRouter();
   const [content, setContent] = useState<Content | null>(null);
-  const [userId] = useState("exampleUserId"); // ユーザーIDを適切に設定してください
+  const [userId, setUserId] = useState<string | null>(null); // ログイン中のユーザーIDを保持
+  const [isComplete, setIsComplete] = useState(false); // ボタン制御用
+  const [hasWatched, setHasWatched] = useState(false); // 動画視聴済みフラグ
+  const [loading, setLoading] = useState(true); // ローディング状態
 
   const contentId = Array.isArray(params?.id) ? params.id[0] : params.id;
 
   useEffect(() => {
-    if (!contentId) return;
+    const auth = getAuth();
+
+    // ユーザー情報を取得
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        router.push("/login"); // 未ログインの場合はログインページへリダイレクト
+      }
+      setLoading(false); // ローディング終了
+    });
+
+    return () => unsubscribe(); // クリーンアップ
+  }, [router]);
+
+  useEffect(() => {
+    if (!contentId || !userId) return; // ローディング中は処理をスキップ
 
     const fetchContent = async () => {
       try {
+        // コンテンツ取得
         const contentRef = doc(db, "contents", contentId);
         const docSnap = await getDoc(contentRef);
 
@@ -47,27 +70,34 @@ export default function ContentPage() {
         } else {
           console.error("指定されたコンテンツが見つかりませんでした。");
         }
+
+        // ユーザー進捗取得
+        const progressRef = doc(db, "progress", `${userId}_${contentId}`);
+        const progressSnap = await getDoc(progressRef);
+
+        if (progressSnap.exists()) {
+          const progress = progressSnap.data();
+          if (progress.isCompleted) {
+            setHasWatched(true);
+            setIsComplete(true); // 視聴済みの場合はボタンを有効に
+          }
+        }
       } catch (error) {
-        console.error("コンテンツの取得に失敗しました", error);
+        console.error("データの取得に失敗しました", error);
       }
     };
 
     fetchContent();
-  }, [contentId]);
+  }, [contentId, userId]);
 
   const handleComplete = async () => {
-    if (!content) return;
+    if (!content || !userId) return;
 
     try {
-      const userProgressRef = doc(db, "users", userId);
-      await updateDoc(userProgressRef, {
-        completedContents: arrayUnion(contentId),
-      });
-
-      const nextOrder = content.stepOrder + 1; // 修正: order → stepOrder
+      const nextOrder = content.stepOrder + 1;
       const nextContentQuery = query(
         collection(db, "contents"),
-        where("stepOrder", "==", nextOrder), // 修正: order → stepOrder
+        where("stepOrder", "==", nextOrder),
         limit(1)
       );
 
@@ -83,11 +113,35 @@ export default function ContentPage() {
         router.push("/dashboard");
       }
     } catch (error) {
-      console.error("進捗の更新に失敗しました", error);
+      console.error("次のコンテンツへの移動に失敗しました", error);
     }
   };
 
-  if (!content) return <div>Loading...</div>;
+  const handleVideoReady = (elementId: string) => {
+    const iframe = document.getElementById(`video-${elementId}`) as HTMLIFrameElement;
+    const player = new Player(iframe);
+
+    player.on("ended", async () => {
+      if (!userId) return;
+
+      try {
+        // 動画視聴完了時に進捗をFirestoreに登録
+        await updateProgress(userId, contentId, true);
+        setIsComplete(true);
+        console.log("動画視聴完了。進捗をFirestoreに登録しました。");
+      } catch (error) {
+        console.error("Firestoreへの進捗登録に失敗しました", error);
+      }
+    });
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!content) {
+    return <div className="flex items-center justify-center min-h-screen">コンテンツが見つかりません</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -103,12 +157,14 @@ export default function ContentPage() {
               {element.elementType === "video" && element.url && (
                 <div className="video-container mx-auto my-4">
                   <iframe
+                    id={`video-${element.id}`}
                     src={element.url}
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
                     className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px]"
                     title={element.caption || "Video"}
                     style={{ maxHeight: "60vh" }}
+                    onLoad={() => handleVideoReady(element.id)}
                   />
                 </div>
               )}
@@ -133,7 +189,13 @@ export default function ContentPage() {
           ))}
         </div>
         <div className="text-center mt-8">
-          <button onClick={handleComplete} className="bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600">
+          <button
+            onClick={handleComplete}
+            className={`px-6 py-3 rounded ${
+              isComplete ? "bg-green-500 text-white hover:bg-green-600" : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
+            disabled={!isComplete}
+          >
             学習完了
           </button>
         </div>

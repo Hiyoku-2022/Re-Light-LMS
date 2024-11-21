@@ -27,6 +27,7 @@ export interface Content {
   type: "content" | "task";
   elements?: Element[];
   task?: Task;
+  estimatedTime: number; // 新たに追加
 }
 
 interface Element {
@@ -43,7 +44,7 @@ interface Element {
 
 interface Task {
   taskText: string;
-  sampleCode: string;
+  sampleCode: { [filename: string]: string };
   testCases: TestCase[];
   modelAnswer: string;
   hint: string;
@@ -78,12 +79,13 @@ export default function ContentManagement() {
     contentId: string,
     type: "content" | "task",
     tag: string,
-    stepOrder: number
+    stepOrder: number,
+    estimatedTime: number // 新たに追加
   ) => {
     const userSnapshot = await getDocs(collection(db, "users"));
     const promises = userSnapshot.docs.map((userDoc) => {
       const userId = userDoc.id;
-      return initializeProgress(userId, contentId, type, tag, stepOrder);
+      return initializeProgress(userId, contentId, type, tag, stepOrder, estimatedTime);
     });
 
     await Promise.all(promises);
@@ -95,8 +97,10 @@ export default function ContentManagement() {
     title: string;
     description: string;
     tags: string[];
-    elements: Element[];
+    elements?: Element[];
     type: "content" | "task";
+    task?: Task;
+    estimatedTime: number; // 新たに追加
   }) => {
     if (!newContent.tags || newContent.tags.length === 0) {
       console.error("タグが設定されていません。");
@@ -113,7 +117,13 @@ export default function ContentManagement() {
       });
 
       const contentId = docRef.id;
-      await initializeProgressForAllUsers(contentId, newContent.type, newContent.tags[0], newOrder);
+      await initializeProgressForAllUsers(
+        contentId,
+        newContent.type,
+        newContent.tags[0],
+        newOrder,
+        newContent.estimatedTime // 新たに追加
+      );
 
       console.log("Document written with ID: ", docRef.id);
     } catch (error) {
@@ -129,8 +139,10 @@ export default function ContentManagement() {
       title: string;
       description: string;
       tags: string[];
-      elements: Element[];
+      elements?: Element[];
+      task?: Task;
       stepOrder: number;
+      estimatedTime: number; // 新たに追加
     }
   ) => {
     const contentRef = doc(db, "contents", id);
@@ -140,10 +152,14 @@ export default function ContentManagement() {
       await updateDoc(contentRef, updatedContent);
 
       if (previousContent) {
-        const { tags: previousTags, stepOrder: previousStepOrder } = previousContent;
+        const { tags: previousTags, stepOrder: previousStepOrder, estimatedTime: previousEstimatedTime } = previousContent;
         const [previousTag] = previousTags;
 
-        if (previousTag !== updatedContent.tags[0] || previousStepOrder !== updatedContent.stepOrder) {
+        if (
+          previousTag !== updatedContent.tags[0] ||
+          previousStepOrder !== updatedContent.stepOrder ||
+          previousEstimatedTime !== updatedContent.estimatedTime
+        ) {
           console.log("ProgressDB updated for content ID:", id);
         }
       }
@@ -189,6 +205,7 @@ export default function ContentManagement() {
         contentId: content.id,
         tag: content.tags[0] || "untagged", // タグがない場合のデフォルト値
         stepOrder: index + 1,
+        estimatedTime: content.estimatedTime, // 新たに追加
       }));
 
       const updateProgressPromises = userSnapshot.docs.map((userDoc) => {

@@ -7,7 +7,8 @@ export const initializeProgress = async (
   contentId: string,
   type: "content" | "task",
   tag: string,
-  stepOrder: number
+  stepOrder: number,
+  estimatedTime: number
 ) => {
   const progressRef = doc(db, "progress", `${userId}_${contentId}`);
   const initialData = {
@@ -18,6 +19,7 @@ export const initializeProgress = async (
     isCompleted: false,
     completedAt: null,
     stepOrder,
+    estimatedTime,
   };
   await setDoc(progressRef, initialData);
 };
@@ -34,7 +36,8 @@ export const initializeUserProgress = async (userId: string) => {
       doc.id,
       data.type,
       data.tags[0],
-      data.stepOrder
+      data.stepOrder,
+      data.estimatedTime
     );
   });
 

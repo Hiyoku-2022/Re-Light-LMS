@@ -61,19 +61,19 @@ export function Header({ dashboardType, onToggleSidebar }: HeaderProps) {
               {dashboardType === "user" ? (
                 <>
                   <Link href="/dashboard"><Button variant="link" className="flex items-center justify-center"><Image src="/HomeIcon.svg" alt="Home" width={24} height={24} /></Button></Link>
-                  <li><Button variant="link" className="flex items-center justify-center"><Image src="/FaceIcon.svg" alt="Face" width={24} height={24} /></Button></li>
-                  <li><Button variant="link" className="flex items-center justify-center"><Image src="/ProgressIcon.svg" alt="Progress" width={24} height={24} /></Button></li>
+                  {/* <li><Button variant="link" className="flex items-center justify-center"><Image src="/FaceIcon.svg" alt="Face" width={24} height={24} /></Button></li> */}
+                  {/* <li><Button variant="link" className="flex items-center justify-center"><Image src="/ProgressIcon.svg" alt="Progress" width={24} height={24} /></Button></li> */}
                 </>
               ) : (
                 <>
                   <Link href="/companydashboard"><Button variant="link" className="flex items-center justify-center"><Image src="/HomeIcon.svg" alt="Home" width={24} height={24} /></Button></Link>
-                  <li><Button variant="link" className="flex items-center justify-center"><Image src="/FaceIcon.svg" alt="Face" width={24} height={24} /></Button></li>
+                  {/* <li><Button variant="link" className="flex items-center justify-center"><Image src="/FaceIcon.svg" alt="Face" width={24} height={24} /></Button></li> */}
                 </>
               )}
             </ul>
           </nav>
           <div className="pb-16 space-y-4 flex flex-col items-center">
-            <Button variant="link" className="flex items-center justify-center"><Image src="/SettingsIcon.svg" alt="Settings" width={24} height={24} /></Button>
+            {/* <Button variant="link" className="flex items-center justify-center"><Image src="/SettingsIcon.svg" alt="Settings" width={24} height={24} /></Button> */}
             <Link href={`/`}><Button variant="link" className="flex items-center justify-center"><Image src="/LogoutIcon.svg" alt="Logout" width={24} height={24} /></Button></Link>
           </div>
         </aside>
