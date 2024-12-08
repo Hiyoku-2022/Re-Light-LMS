@@ -65,9 +65,6 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
               <div key={content.id} className="p-4 border rounded-lg bg-gray-50 shadow-md">
                 <h2 className="text-lg font-semibold mb-2">{content.title}</h2>
                 <p className="text-gray-600">{content.description}</p>
-                <p className="text-gray-500 text-sm">
-                  タイプ: {content.type === "content" ? "コンテンツ" : "課題"} {/* 修正: type を表示 */}
-                </p>
                 <Link href={`/content/${content.id}`}>
                   <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
                     詳細を表示

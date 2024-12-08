@@ -49,7 +49,8 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     hint: "",
     previewCode: "",
   });
-
+  
+  const [editingFilenames, setEditingFilenames] = useState<{ [key: string]: string }>({});
 
   const [stepOrder, setStepOrder] = useState(1);
   const [estimatedTime, setEstimatedTime] = useState(0);
@@ -370,7 +371,17 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                       className="mb-2"
                     />
                     {uploading && <p>アップロード中: {uploadProgress}%</p>}
-                    {element.url && <img src={element.url} alt="Uploaded" className="w-full h-auto rounded" />}
+                    {element.url && (
+                    <Image 
+                      src={element.url} 
+                      alt="Uploaded" 
+                      className="w-full h-auto rounded" 
+                      width={800}
+                      height={600}
+                      layout="responsive"
+                      objectFit="cover"
+                    />
+                  )}
                   </>
                 )}
                 {element.elementType === "code" && (
@@ -420,22 +431,82 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 <h3 className="text-lg mt-4">サンプルコード</h3>
                 {Object.entries(task.sampleCode).map(([filename, content]) => (
                   <div key={filename} className="p-2 border rounded mb-2 bg-white">
-                    <input
-                      value={filename}
-                      readOnly
-                      className="w-full p-2 border rounded mb-2 bg-gray-100"
-                    />
+                    {editingFilenames[filename] !== undefined ? (
+                      <>
+                        <input
+                          value={editingFilenames[filename]}
+                          onChange={(e) =>
+                            setEditingFilenames((prev) => ({
+                              ...prev,
+                              [filename]: e.target.value,
+                            }))
+                          }
+                          placeholder="新しいファイル名"
+                          className="w-full p-2 border rounded mb-2"
+                        />
+                        <button
+                          onClick={() => {
+                            const newFilename = editingFilenames[filename].trim();
+                            if (!newFilename) return alert("ファイル名を入力してください");
+                            if (newFilename in task.sampleCode) {
+                              return alert("同じ名前のファイルがすでに存在します");
+                            }
+                            const updatedSampleCode = { ...task.sampleCode };
+                            updatedSampleCode[newFilename] = updatedSampleCode[filename];
+                            delete updatedSampleCode[filename];
+                            setTask({ ...task, sampleCode: updatedSampleCode });
+                            setEditingFilenames((prev) => {
+                              const { [filename]: _, ...rest } = prev;
+                              return rest;
+                            });
+                          }}
+                          className="bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() =>
+                            setEditingFilenames((prev) => {
+                              const { [filename]: _, ...rest } = prev;
+                              return rest;
+                            })
+                          }
+                          className="bg-gray-500 text-white px-4 py-2 rounded"
+                        >
+                          キャンセル
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          value={filename}
+                          readOnly
+                          className="w-full p-2 border rounded mb-2 bg-gray-100"
+                        />
+                        <button
+                          onClick={() =>
+                            setEditingFilenames((prev) => ({
+                              ...prev,
+                              [filename]: filename,
+                            }))
+                          }
+                          className="bg-blue-500 text-white px-4 py-2 rounded"
+                        >
+                          編集
+                        </button>
+                      </>
+                    )}
                     <textarea
                       value={content}
                       onChange={(e) => updateSampleFile(filename, e.target.value)}
-                      placeholder="HTML/CSS/JavaScriptのコードを記述してください"
+                      placeholder="コードを記述してください"
                       className="w-full p-2 border rounded"
                     />
                     <button
                       onClick={() => removeSampleFile(filename)}
                       className="bg-red-500 text-white px-4 py-2 rounded mt-2"
                     >
-                      ファイル削除
+                      削除
                     </button>
                   </div>
                 ))}

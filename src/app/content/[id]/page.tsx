@@ -32,10 +32,10 @@ export default function ContentPage() {
   const params = useParams();
   const router = useRouter();
   const [content, setContent] = useState<Content | null>(null);
-  const [userId, setUserId] = useState<string | null>(null); // ログイン中のユーザーIDを保持
-  const [isComplete, setIsComplete] = useState(false); // ボタン制御用
-  const [hasWatched, setHasWatched] = useState(false); // 動画視聴済みフラグ
-  const [loading, setLoading] = useState(true); // ローディング状態
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
+  const [hasWatched, setHasWatched] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const contentId = Array.isArray(params?.id) ? params.id[0] : params.id;
 
@@ -169,21 +169,22 @@ export default function ContentPage() {
                 </div>
               )}
               {element.elementType === "image" && element.url && (
-                <div className="text-center my-4">
+                <div className="text-center my-4 flex justify-center">
                   <Image
                     src={element.url}
                     alt={element.caption || "画像"}
                     width={element.width || 800}
                     height={element.height || 600}
-                    className="mx-auto max-w-full h-auto"
-                    style={element.style || {}}
+                    style={{ width: "80%", height: "auto", ...element.style }}
                   />
                 </div>
               )}
-              {element.elementType === "code" && (
-                <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
-                  <code>{element.content || ""}</code>
-                </pre>
+              {element.elementType === "code" && element.content && (
+                <div className="my-4">
+                  <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
+                    <code>{element.content}</code>
+                  </pre>
+                </div>
               )}
             </div>
           ))}
