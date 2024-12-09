@@ -28,7 +28,7 @@ jobs:
           echo "NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_APP_ID }}" >> .env.production
           echo "FIREBASE_PROJECT_ID=${{ secrets.PRODUCTION_FIREBASE_PROJECT_ID }}" >> .env.production
           echo "FIREBASE_CLIENT_EMAIL=${{ secrets.PRODUCTION_FIREBASE_CLIENT_EMAIL }}" >> .env.production
-          echo "FIREBASE_PRIVATE_KEY=$(echo ${{ secrets.PRODUCTION_FIREBASE_PRIVATE_KEY }} | base64 --decode)" >> .env.production
+          echo "FIREBASE_PRIVATE_KEY=\"$(echo ${{ secrets.PRODUCTION_FIREBASE_PRIVATE_KEY }} | base64 --decode)\"" >> .env.production
           
       - name: Authenticate with GCP
         run: |
