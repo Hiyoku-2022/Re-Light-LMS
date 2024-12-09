@@ -45,10 +45,16 @@ jobs:
 
       - name: Generate .env.staging file
         run: |
-          echo "${{ secrets.STAGING_ENV_CONTENT }}" > .env.staging
-          sed -i 's/\\n/\n/g' .env.staging # 改行を復元
-          cat .env.staging
-          
+          echo "NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_API_KEY }}" >> .env.staging
+          echo "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}" >> .env.staging
+          echo "NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_PROJECT_ID }}" >> .env.staging
+          echo "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}" >> .env.staging
+          echo "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}" >> .env.staging
+          echo "NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.STAGING_NEXT_PUBLIC_FIREBASE_APP_ID }}" >> .env.staging
+          echo "FIREBASE_PROJECT_ID=${{ secrets.STAGING_FIREBASE_PROJECT_ID }}" >> .env.staging
+          echo "FIREBASE_CLIENT_EMAIL=${{ secrets.STAGING_FIREBASE_CLIENT_EMAIL }}" >> .env.staging
+          echo "FIREBASE_PRIVATE_KEY=$(echo ${{ secrets.STAGING_FIREBASE_PRIVATE_KEY }} | base64 --decode)" >> .env.staging
+
       - name: Authenticate with GCP
         run: |
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 --decode > /tmp/keyfile.json
