@@ -3,12 +3,12 @@ import { adminDb } from "@/utils/firebaseAdmin";
 import { Firestore } from "firebase-admin/firestore";
 
 const courses = [
-  { id: "html", title: "HTML", description: "HTML basics", image: "/HTML.svg" },
-  { id: "css", title: "CSS", description: "CSS basics", image: "/CSS.svg" },
-  { id: "bootstrap", title: "Bootstrap", description: "Bootstrap basics", image: "/Bootstrap.svg" },
-  { id: "javascript", title: "JavaScript", description: "JavaScript basics", image: "/JavaScript.svg" },
-  { id: "php", title: "PHP", description: "PHP basics", image: "/PHP.svg" },
-  { id: "database", title: "Database", description: "Database basics", image: "/Database.svg" },
+  { id: "html", title: "HTML", description: "まずはウェブサイトに文字を表示する方法から学んでいきましょう。", image: "/HTML.svg" },
+  { id: "css", title: "CSS", description: "コースを終了すると、Webアプリやサイトのデザインを作成するスキルが身につきます。", image: "/CSS.svg" },
+  { id: "bootstrap", title: "Bootstrap", description: "開発をより高速に進めることができるようになります。", image: "/Bootstrap.svg" },
+  { id: "javascript", title: "JavaScript", description: "画面に動きをつけたり、サーバーと情報を送信することができるようになります。", image: "/JavaScript.svg" },
+  { id: "php", title: "PHP", description: "オンラインショップ機能を実装したWebサイトを開発できるようになります。", image: "/PHP.svg" },
+  { id: "database", title: "Database", description: "データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきます。", image: "/Database.svg" },
 ];
 
 export async function GET(req: Request) {

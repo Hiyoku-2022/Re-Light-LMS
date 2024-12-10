@@ -33,16 +33,18 @@ export default function LearningProgressCalendar() {
 
         const progress: Progress[] = await response.json();
 
-        // 日付ごとのカウントを計算
         const dateCountMap: Record<string, number> = {};
         progress.forEach((item) => {
-          const date = new Date(item.completedAt._seconds * 1000).toISOString().split("T")[0];
-          dateCountMap[date] = (dateCountMap[date] || 0) + 1;
+          if (item.completedAt && item.completedAt._seconds) {
+            const date = new Date(item.completedAt._seconds * 1000).toISOString().split("T")[0];
+            dateCountMap[date] = (dateCountMap[date] || 0) + 1;
+          } else {
+            console.warn("Skipping invalid progress item:", item);
+          }
         });
 
         console.log("Date Count Map:", dateCountMap);
 
-        // ヒートマップ用のデータ形式に変換
         const activityData = Object.entries(dateCountMap).map(([date, count]) => ({
           date,
           count,
@@ -66,7 +68,7 @@ export default function LearningProgressCalendar() {
         endDate={new Date("2024-12-31")}
         values={activityData}
         classForValue={(value) => {
-          console.log("Rendering value:", value); // 値を確認
+          console.log("Rendering value:", value);
           if (!value) {
             return "color-empty";
           }
