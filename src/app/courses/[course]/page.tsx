@@ -37,7 +37,7 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
           ...doc.data(),
         })) as Content[];
 
-        const sortedContents = fetchedContents.sort((a, b) => a.stepOrder - b.stepOrder); // 修正: order → stepOrder
+        const sortedContents = fetchedContents.sort((a, b) => a.stepOrder - b.stepOrder);
 
         setContents(sortedContents);
       } catch (error) {
@@ -65,7 +65,7 @@ const CoursePage: React.FC<CoursePageProps> = ({ params }) => {
               <div key={content.id} className="p-4 border rounded-lg bg-gray-50 shadow-md">
                 <h2 className="text-lg font-semibold mb-2">{content.title}</h2>
                 <p className="text-gray-600">{content.description}</p>
-                <Link href={`/content/${content.id}`}>
+                <Link href={content.type === "content" ? `/content/${content.id}` : `/task/${content.id}`}>
                   <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
                     詳細を表示
                   </button>

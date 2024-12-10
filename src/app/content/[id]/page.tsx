@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/firebase";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Header } from "@/components/UI/Header";
 import Player from "@vimeo/player";
@@ -47,7 +47,7 @@ export default function ContentPage() {
       if (user) {
         setUserId(user.uid);
       } else {
-        router.push("/login"); // 未ログインの場合はログインページへリダイレクト
+        router.push("/");
       }
       setLoading(false); // ローディング終了
     });

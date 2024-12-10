@@ -20,7 +20,7 @@ interface Task {
   taskText: string;
   sampleCode: { [filename: string]: string };
   testCases: TestCase[];
-  modelAnswer: string;
+  modelAnswers: { [filename: string]: string };
   hint: string;
   constraints?: { maxExecutionTime: number };
   previewCode?: string;
@@ -45,12 +45,13 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     taskText: "",
     sampleCode: {},
     testCases: [],
-    modelAnswer: "",
+    modelAnswers: {},
     hint: "",
     previewCode: "",
   });
   
   const [editingFilenames, setEditingFilenames] = useState<{ [key: string]: string }>({});
+  const [editingModelFilenames, setEditingModelFilenames] = useState<{ [key: string]: string }>({});
 
   const [stepOrder, setStepOrder] = useState(1);
   const [estimatedTime, setEstimatedTime] = useState(0);
@@ -74,7 +75,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
           taskText: selectedContent.taskText || "",
           sampleCode: selectedContent.sampleCode || {},
           testCases: selectedContent.testCases || [],
-          modelAnswer: selectedContent.modelAnswer || "",
+          modelAnswers: selectedContent.modelAnswer || {},
           hint: selectedContent.hint || "",
           previewCode: selectedContent.previewCode || "",
         });
@@ -97,7 +98,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
       taskText: "",
       sampleCode: {},
       testCases: [],
-      modelAnswer: "",
+      modelAnswers: {},
       hint: "",
       previewCode: "",
     });
@@ -245,6 +246,60 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     } catch (error) {
       console.error("プレビューコードアップロードエラー:", error);
     }
+  };
+
+  // 模範解答管理関数
+  const addModelAnswerFile = () => {
+    const newFilename = `modelAnswer${Object.keys(task.modelAnswers).length + 1}.txt`;
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: { ...prev.modelAnswers, [newFilename]: "" },
+    }));
+  };
+
+  const updateModelAnswerFile = (filename: string, content: string) => {
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: { ...prev.modelAnswers, [filename]: content },
+    }));
+  };
+
+  const removeModelAnswerFile = (filename: string) => {
+    const updatedModelAnswers = { ...task.modelAnswers };
+    delete updatedModelAnswers[filename];
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: updatedModelAnswers,
+    }));
+  };
+
+  // ファイル名編集管理（模範解答用）
+  const editModelFilename = (filename: string, newFilename: string) => {
+    const updatedModelAnswers = { ...task.modelAnswers };
+    updatedModelAnswers[newFilename] = updatedModelAnswers[filename];
+    delete updatedModelAnswers[filename];
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: updatedModelAnswers,
+    }));
+  };
+
+  const saveModelAnswerFilename = (filename: string) => {
+    const newFilename = editingModelFilenames[filename]?.trim();
+    if (!newFilename) {
+      alert("ファイル名を入力してください。");
+      return;
+    }
+    if (newFilename in task.modelAnswers) {
+      alert("同じ名前のファイルがすでに存在します。");
+      return;
+    }
+  
+    editModelFilename(filename, newFilename);
+    setEditingModelFilenames((prev) => {
+      const { [filename]: _, ...rest } = prev;
+      return rest;
+    });
   };
 
   const handleSubmit = () => {
@@ -653,12 +708,82 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
             )}
 
             {/* 模範解答とヒント */}
-            <textarea
-              value={task.modelAnswer}
-              onChange={(e) => setTask({ ...task, modelAnswer: e.target.value })}
-              placeholder="模範解答"
-              className="w-full p-2 border rounded"
-            />
+            <div>
+              <h3 className="text-lg mt-4">模範解答</h3>
+              {Object.entries(task.modelAnswers).map(([filename, content]) => (
+                <div key={filename} className="p-2 border rounded mb-2 bg-white">
+                  {editingModelFilenames[filename] !== undefined ? (
+                    <>
+                      <input
+                        value={editingModelFilenames[filename]}
+                        onChange={(e) =>
+                          setEditingModelFilenames((prev) => ({
+                            ...prev,
+                            [filename]: e.target.value,
+                          }))
+                        }
+                        placeholder="新しいファイル名"
+                        className="w-full p-2 border rounded mb-2"
+                      />
+                      <button
+                        onClick={() => saveModelAnswerFilename(filename)}
+                        className="bg-green-500 text-white px-4 py-2 rounded"
+                      >
+                        保存
+                      </button>
+                      <button
+                        onClick={() =>
+                          setEditingModelFilenames((prev) => {
+                            const { [filename]: _, ...rest } = prev;
+                            return rest;
+                          })
+                        }
+                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                      >
+                        キャンセル
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        value={filename}
+                        readOnly
+                        className="w-full p-2 border rounded mb-2 bg-gray-100"
+                      />
+                      <button
+                        onClick={() =>
+                          setEditingModelFilenames((prev) => ({
+                            ...prev,
+                            [filename]: filename,
+                          }))
+                        }
+                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                      >
+                        編集
+                      </button>
+                    </>
+                  )}
+                  <textarea
+                    value={content}
+                    onChange={(e) => updateModelAnswerFile(filename, e.target.value)}
+                    placeholder="模範解答を記述してください"
+                    className="w-full p-2 border rounded"
+                  />
+                  <button
+                    onClick={() => removeModelAnswerFile(filename)}
+                    className="bg-red-500 text-white px-4 py-2 rounded mt-2"
+                  >
+                    削除
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addModelAnswerFile}
+                className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+              >
+                模範解答ファイル追加
+              </button>
+            </div>
             <textarea
               value={task.hint}
               onChange={(e) => setTask({ ...task, hint: e.target.value })}

@@ -8,7 +8,7 @@ const courses = [
   { id: "bootstrap", title: "Bootstrap", description: "開発をより高速に進めることができるようになります。", image: "/Bootstrap.svg" },
   { id: "javascript", title: "JavaScript", description: "画面に動きをつけたり、サーバーと情報を送信することができるようになります。", image: "/JavaScript.svg" },
   { id: "php", title: "PHP", description: "オンラインショップ機能を実装したWebサイトを開発できるようになります。", image: "/PHP.svg" },
-  { id: "database", title: "Database", description: "データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきます。", image: "/Database.svg" },
+  { id: "database", title: "Database", description: "データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきます。", image: "/DataBase.svg" },
 ];
 
 export async function GET(req: Request) {
