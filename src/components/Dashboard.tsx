@@ -39,7 +39,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <h2 className="text-lg font-bold mb-2">進捗状況</h2>
             <div className="flex justify-around items-center space-x-2">
               <div className="flex flex-col items-center">
-                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-28 h-28">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-24 h-24">
                   <span className="text-3xl font-bold">{tutorialsCount}</span>
                 </div>
                 <div className="text-sm mt-2">チュートリアル</div>
@@ -51,7 +51,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div className="text-sm mt-2">問題</div>
               </div>
               <div className="flex flex-col items-center">
-                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-24 h-24">
+                <div className="bg-blue-100 text-blue-600 rounded-full flex items-center justify-center w-28 h-28">
                   <span className="text-3xl font-bold">{totalWatchTime}</span>
                 </div>
                 <div className="text-sm mt-2">総学習時間</div>

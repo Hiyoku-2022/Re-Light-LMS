@@ -12,8 +12,11 @@ interface Element {
 }
 
 interface TestCase {
+  fileName: string;
   input: string;
-  expectedOutput: string;
+  expectedOutput?: string;
+  expectedStyle?: Record<string, string>;
+  event?: { type: string; expectedOutput: string } | null;
 }
 
 interface Task {
@@ -185,11 +188,14 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
   const addTestCase = () => {
     setTask((prev) => ({
       ...prev,
-      testCases: [...prev.testCases, { input: "", expectedOutput: "" }],
+      testCases: [
+        ...prev.testCases,
+        { fileName: "", input: "", expectedOutput: "", expectedStyle: {}, event: null },
+      ],
     }));
   };
 
-  const updateTestCase = (index: number, field: keyof TestCase, value: string) => {
+  const updateTestCase = (index: number, field: keyof TestCase, value: any) => {
     setTask((prev) => {
       const updatedTestCases = [...prev.testCases];
       updatedTestCases[index][field] = value;
@@ -248,7 +254,6 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     }
   };
 
-  // 模範解答管理関数
   const addModelAnswerFile = () => {
     const newFilename = `modelAnswer${Object.keys(task.modelAnswers).length + 1}.txt`;
     setTask((prev) => ({
@@ -273,7 +278,6 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     }));
   };
 
-  // ファイル名編集管理（模範解答用）
   const editModelFilename = (filename: string, newFilename: string) => {
     const updatedModelAnswers = { ...task.modelAnswers };
     updatedModelAnswers[newFilename] = updatedModelAnswers[filename];
@@ -575,22 +579,127 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 {/* テストケース */}
                 <h3 className="text-lg mt-4">テストケース</h3>
                 {task.testCases.map((testCase, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
+                  <div key={index} className="p-2 border rounded mb-2">
+                    <input
+                      value={testCase.fileName}
+                      onChange={(e) => updateTestCase(index, "fileName", e.target.value)}
+                      placeholder="ファイル名 (例: index.html)"
+                      className="w-full p-2 border rounded mb-2"
+                    />
                     <textarea
                       value={testCase.input}
                       onChange={(e) => updateTestCase(index, "input", e.target.value)}
-                      placeholder="HTML要素や属性 (例: `<div id='test'>`)"
-                      className="flex-1 p-2 border rounded"
+                      placeholder="検証対象 (例: h1)"
+                      className="w-full p-2 border rounded mb-2"
                     />
                     <textarea
-                      value={testCase.expectedOutput}
+                      value={testCase.expectedOutput || ""}
                       onChange={(e) => updateTestCase(index, "expectedOutput", e.target.value)}
-                      placeholder="期待されるDOM状態 (例: id='test'が存在する)"
-                      className="flex-1 p-2 border rounded"
+                      placeholder="期待される出力"
+                      className="w-full p-2 border rounded mb-2"
                     />
+                    {/* CSSスタイル管理 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700">期待されるCSSスタイル</label>
+                      <div className="space-y-2">
+                        {Object.entries(testCase.expectedStyle || {}).map(([property, value]) => (
+                          <div key={property} className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              defaultValue={property}
+                              onBlur={(e) => {
+                                const newProperty = e.target.value.trim();
+                                if (!newProperty) return;
+                                const updatedStyle = { ...testCase.expectedStyle };
+                                updatedStyle[newProperty] = updatedStyle[property];
+                                delete updatedStyle[property];
+                                updateTestCase(index, "expectedStyle", updatedStyle);
+                              }}
+                              placeholder="CSSプロパティ (例: color)"
+                              className="flex-1 p-2 border rounded"
+                            />
+                            <input
+                              type="text"
+                              defaultValue={value}
+                              onBlur={(e) => {
+                                const updatedStyle = { ...testCase.expectedStyle };
+                                updatedStyle[property] = e.target.value.trim();
+                                updateTestCase(index, "expectedStyle", updatedStyle);
+                              }}
+                              placeholder="期待される値 (例: blue)"
+                              className="flex-1 p-2 border rounded"
+                            />
+                            <button
+                              onClick={() => {
+                                const updatedStyle = { ...testCase.expectedStyle };
+                                delete updatedStyle[property];
+                                updateTestCase(index, "expectedStyle", updatedStyle);
+                              }}
+                              className="bg-red-500 text-white px-2 py-1 rounded"
+                            >
+                              削除
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() =>
+                            updateTestCase(index, "expectedStyle", {
+                              ...testCase.expectedStyle,
+                              "": "",
+                            })
+                          }
+                          className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                          CSSスタイル追加
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* イベント検証 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700">イベント検証</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            defaultValue={testCase.event?.type || ""}
+                            onBlur={(e) => {
+                              updateTestCase(index, "event", {
+                                ...testCase.event,
+                                type: e.target.value.trim(),
+                              });
+                            }}
+                            placeholder="イベントタイプ (例: click)"
+                            className="flex-1 p-2 border rounded"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <input
+                            type="text"
+                            defaultValue={testCase.event?.expectedOutput || ""}
+                            onBlur={(e) => {
+                              updateTestCase(index, "event", {
+                                ...testCase.event,
+                                expectedOutput: e.target.value.trim(),
+                              });
+                            }}
+                            placeholder="期待される結果 (例: Hello)"
+                            className="flex-1 p-2 border rounded"
+                          />
+                        </div>
+                        <button
+                          onClick={() =>
+                            updateTestCase(index, "event", { type: "", expectedOutput: "" })
+                          }
+                          className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                          イベントをリセット
+                        </button>
+                      </div>
+                    </div>
                     <button
                       onClick={() => removeTestCase(index)}
-                      className="bg-red-500 text-white px-2 py-1 rounded"
+                      className="bg-red-500 text-white px-4 py-2 rounded"
                     >
                       削除
                     </button>
@@ -598,9 +707,9 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 ))}
                 <button
                   onClick={addTestCase}
-                  className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                  className="bg-green-500 text-white px-4 py-2 rounded"
                 >
-                  テストケースの追加
+                  テストケース追加
                 </button>
 
                 {/* プレビュー編集 */}
