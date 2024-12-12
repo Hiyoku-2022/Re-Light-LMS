@@ -31,6 +31,14 @@ interface TaskData {
   stepOrder: number;
 }
 
+interface TestCase {
+  fileName: string;
+  input: string;
+  expectedOutput?: string;
+  expectedStyle?: Record<string, string>;
+  event?: string;
+}
+
 const TaskPage: React.FC = () => {
   const { id } = useParams() as { id: string };
   const router = useRouter();
@@ -109,39 +117,21 @@ const TaskPage: React.FC = () => {
       alert("タスクまたはユーザー情報が見つかりません。");
       return;
     }
-
-    let allTestsPassed = true;
-
+  
     try {
-      for (const testCase of task.testCases) {
-        const { fileName, input, expectedOutput } = testCase;
-
-        // 指定されたファイルの内容を仮想 DOM にロード
-        const fileContent = userCode[fileName] || "";
-        const virtualDiv = document.createElement("div");
-        virtualDiv.innerHTML = fileContent;
-
-        // 指定されたセレクターの内容を検証
-        const element = virtualDiv.querySelector(input);
-        const actualOutput = element?.textContent?.trim() || "";
-
-        if (actualOutput !== expectedOutput) {
-          console.error("不一致:", { fileName, input, actualOutput, expectedOutput });
-          allTestsPassed = false;
-          break;
-        }
-      }
-
+      // テストケースの実行
+      const allTestsPassed = await validateTask(userCode, task.testCases);
+  
       if (allTestsPassed) {
         alert("正解！次のタスクに進めます！");
-
+  
         // 進捗情報をFirestoreに保存
         const progressRef = doc(db, "progress", `${userId}_${id}`);
         await updateDoc(progressRef, {
           isCompleted: true,
           completedAt: Timestamp.now(),
         });
-
+  
         // 次のタスクへの遷移処理
         const nextOrder = task.stepOrder + 1;
         const nextContentQuery = query(
@@ -149,13 +139,22 @@ const TaskPage: React.FC = () => {
           where("stepOrder", "==", nextOrder),
           limit(1)
         );
-
+  
         const querySnapshot = await getDocs(nextContentQuery);
         if (!querySnapshot.empty) {
           const nextContent = querySnapshot.docs[0];
           const nextContentId = nextContent.id;
-
-          router.push(`/content/${nextContentId}`);
+          const nextContentData = nextContent.data();
+          const nextContentType = nextContentData.type;
+  
+          if (nextContentType === "task") {
+            router.push(`/task/${nextContentId}`);
+          } else if (nextContentType === "content") {
+            router.push(`/content/${nextContentId}`);
+          } else {
+            console.error("不明なコンテンツタイプです:", nextContentType);
+            router.push("/dashboard");
+          }
         } else {
           alert("おめでとうございます！すべてのタスクを完了しました。");
           router.push("/dashboard");
@@ -168,7 +167,79 @@ const TaskPage: React.FC = () => {
       alert("コードの検証中にエラーが発生しました。");
     }
   };
+  
+  const applyStyleToContainer = (container: HTMLElement, styleContent: string): void => {
+    const existingStyle = container.querySelector("style#user-style");
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+  
+    const style = document.createElement("style");
+    style.id = "user-style";
+    style.textContent = styleContent;
+    container.appendChild(style);
+    console.log("Style Applied to Container:", style.textContent);
+  };
 
+  const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
+    const container = document.createElement("div");
+    container.innerHTML = userCode["index.html"] || "";
+    document.body.appendChild(container);
+    
+    applyStyleToContainer(container, userCode["style.css"] || "");
+  
+    let allTestsPassed = true;
+  
+    testCases.forEach(({ input, expectedStyle }) => {
+      const element = container.querySelector(input) as HTMLElement;
+  
+      if (!element) {
+        console.error(`要素が見つかりません: ${input}`);
+        allTestsPassed = false;
+        return;
+      }
+  
+      const computedStyle = window.getComputedStyle(element);
+  
+      const computedStyleMatches = expectedStyle
+        ? Object.entries(expectedStyle).every(([key, value]) => {
+            const computedValue = computedStyle.getPropertyValue(key);
+  
+            if (key === "color") {
+              return compareColors(computedValue, value);
+            }
+  
+            return computedValue === value;
+          })
+        : true;
+  
+      if (!computedStyleMatches) {
+        console.error("スタイルが一致しません:", {
+          input,
+          expectedStyle,
+          computedStyles: computedStyle.cssText,
+        });
+        allTestsPassed = false;
+      }
+    });
+  
+    document.body.removeChild(container);
+    return allTestsPassed;
+  };
+    
+  const compareColors = (computedValue: string, expectedValue: string): boolean => {
+    const normalizeColor = (color: string): string => {
+      const div = document.createElement("div");
+      div.style.color = color;
+      document.body.appendChild(div);
+      const rgbColor = window.getComputedStyle(div).color;
+      document.body.removeChild(div);
+      return rgbColor;
+    };
+  
+    return normalizeColor(computedValue) === normalizeColor(expectedValue);
+  };
+      
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }

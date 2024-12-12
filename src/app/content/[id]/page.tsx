@@ -25,7 +25,8 @@ interface Content {
   id: string;
   title: string;
   stepOrder: number;
-  elements: ContentElement[];
+  type: string;
+  elements?: ContentElement[];
 }
 
 export default function ContentPage() {
@@ -104,10 +105,19 @@ export default function ContentPage() {
       const querySnapshot = await getDocs(nextContentQuery);
       if (!querySnapshot.empty) {
         const nextContent = querySnapshot.docs[0];
+        const nextContentData = nextContent.data();
         const nextContentId = nextContent.id;
+        const nextContentType = nextContentData.type;
 
         alert("コンテンツを完了しました！");
-        router.push(`/content/${nextContentId}`);
+        if (nextContentType === "task") {
+          router.push(`/task/${nextContentId}`); // タスクページへ遷移
+        } else if (nextContentType === "content") {
+          router.push(`/content/${nextContentId}`); // コンテンツページへ遷移
+        } else {
+          console.error("不明なコンテンツタイプです:", nextContentType);
+          router.push("/dashboard");
+        }
       } else {
         alert("次のコンテンツは存在しません。");
         router.push("/dashboard");
@@ -116,7 +126,7 @@ export default function ContentPage() {
       console.error("次のコンテンツへの移動に失敗しました", error);
     }
   };
-
+  
   const handleVideoReady = (elementId: string) => {
     const iframe = document.getElementById(`video-${elementId}`) as HTMLIFrameElement;
     const player = new Player(iframe);
@@ -149,45 +159,49 @@ export default function ContentPage() {
       <div className="p-6 pt-24 max-w-4xl mx-auto bg-white rounded shadow-lg mt-4">
         <h1 className="text-3xl font-bold mb-4">{content.title}</h1>
         <div className="prose">
-          {content.elements.map((element, index) => (
-            <div key={element.id || index}>
-              {element.elementType === "text" && (
-                <div dangerouslySetInnerHTML={{ __html: element.content || "" }} />
-              )}
-              {element.elementType === "video" && element.url && (
-                <div className="video-container mx-auto my-4">
-                  <iframe
-                    id={`video-${element.id}`}
-                    src={element.url}
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px]"
-                    title={element.caption || "Video"}
-                    style={{ maxHeight: "60vh" }}
-                    onLoad={() => handleVideoReady(element.id)}
-                  />
-                </div>
-              )}
-              {element.elementType === "image" && element.url && (
-                <div className="text-center my-4 flex justify-center">
-                  <Image
-                    src={element.url}
-                    alt={element.caption || "画像"}
-                    width={element.width || 800}
-                    height={element.height || 600}
-                    style={{ width: "80%", height: "auto", ...element.style }}
-                  />
-                </div>
-              )}
-              {element.elementType === "code" && element.content && (
-                <div className="my-4">
-                  <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
-                    <code>{element.content}</code>
-                  </pre>
-                </div>
-              )}
-            </div>
-          ))}
+          {content.elements && content.elements.length > 0 ? ( // 修正: 条件付きで map を実行
+            content.elements.map((element, index) => (
+              <div key={element.id || index}>
+                {element.elementType === "text" && (
+                  <div dangerouslySetInnerHTML={{ __html: element.content || "" }} />
+                )}
+                {element.elementType === "video" && element.url && (
+                  <div className="video-container mx-auto my-4">
+                    <iframe
+                      id={`video-${element.id}`}
+                      src={element.url}
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px]"
+                      title={element.caption || "Video"}
+                      style={{ maxHeight: "60vh" }}
+                      onLoad={() => handleVideoReady(element.id)}
+                    />
+                  </div>
+                )}
+                {element.elementType === "image" && element.url && (
+                  <div className="text-center my-4 flex justify-center">
+                    <Image
+                      src={element.url}
+                      alt={element.caption || "画像"}
+                      width={element.width || 800}
+                      height={element.height || 600}
+                      style={{ width: "80%", height: "auto", ...element.style }}
+                    />
+                  </div>
+                )}
+                {element.elementType === "code" && element.content && (
+                  <div className="my-4">
+                    <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
+                      <code>{element.content}</code>
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>このコンテンツには表示可能な要素がありません。</p>
+          )}
         </div>
         <div className="text-center mt-8">
           <button
