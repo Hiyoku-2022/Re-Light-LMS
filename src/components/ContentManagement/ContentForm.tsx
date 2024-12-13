@@ -12,15 +12,18 @@ interface Element {
 }
 
 interface TestCase {
+  fileName: string;
   input: string;
-  expectedOutput: string;
+  expectedOutput?: string;
+  expectedStyle?: Record<string, string>;
+  event?: { type: string; expectedOutput: string } | null;
 }
 
 interface Task {
   taskText: string;
   sampleCode: { [filename: string]: string };
   testCases: TestCase[];
-  modelAnswer: string;
+  modelAnswers: { [filename: string]: string };
   hint: string;
   constraints?: { maxExecutionTime: number };
   previewCode?: string;
@@ -45,11 +48,13 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     taskText: "",
     sampleCode: {},
     testCases: [],
-    modelAnswer: "",
+    modelAnswers: {},
     hint: "",
     previewCode: "",
   });
-
+  
+  const [editingFilenames, setEditingFilenames] = useState<{ [key: string]: string }>({});
+  const [editingModelFilenames, setEditingModelFilenames] = useState<{ [key: string]: string }>({});
 
   const [stepOrder, setStepOrder] = useState(1);
   const [estimatedTime, setEstimatedTime] = useState(0);
@@ -73,7 +78,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
           taskText: selectedContent.taskText || "",
           sampleCode: selectedContent.sampleCode || {},
           testCases: selectedContent.testCases || [],
-          modelAnswer: selectedContent.modelAnswer || "",
+          modelAnswers: selectedContent.modelAnswer || {},
           hint: selectedContent.hint || "",
           previewCode: selectedContent.previewCode || "",
         });
@@ -96,7 +101,7 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
       taskText: "",
       sampleCode: {},
       testCases: [],
-      modelAnswer: "",
+      modelAnswers: {},
       hint: "",
       previewCode: "",
     });
@@ -183,11 +188,14 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
   const addTestCase = () => {
     setTask((prev) => ({
       ...prev,
-      testCases: [...prev.testCases, { input: "", expectedOutput: "" }],
+      testCases: [
+        ...prev.testCases,
+        { fileName: "", input: "", expectedOutput: "", expectedStyle: {}, event: null },
+      ],
     }));
   };
 
-  const updateTestCase = (index: number, field: keyof TestCase, value: string) => {
+  const updateTestCase = (index: number, field: keyof TestCase, value: any) => {
     setTask((prev) => {
       const updatedTestCases = [...prev.testCases];
       updatedTestCases[index][field] = value;
@@ -244,6 +252,58 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
     } catch (error) {
       console.error("プレビューコードアップロードエラー:", error);
     }
+  };
+
+  const addModelAnswerFile = () => {
+    const newFilename = `modelAnswer${Object.keys(task.modelAnswers).length + 1}.txt`;
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: { ...prev.modelAnswers, [newFilename]: "" },
+    }));
+  };
+
+  const updateModelAnswerFile = (filename: string, content: string) => {
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: { ...prev.modelAnswers, [filename]: content },
+    }));
+  };
+
+  const removeModelAnswerFile = (filename: string) => {
+    const updatedModelAnswers = { ...task.modelAnswers };
+    delete updatedModelAnswers[filename];
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: updatedModelAnswers,
+    }));
+  };
+
+  const editModelFilename = (filename: string, newFilename: string) => {
+    const updatedModelAnswers = { ...task.modelAnswers };
+    updatedModelAnswers[newFilename] = updatedModelAnswers[filename];
+    delete updatedModelAnswers[filename];
+    setTask((prev) => ({
+      ...prev,
+      modelAnswers: updatedModelAnswers,
+    }));
+  };
+
+  const saveModelAnswerFilename = (filename: string) => {
+    const newFilename = editingModelFilenames[filename]?.trim();
+    if (!newFilename) {
+      alert("ファイル名を入力してください。");
+      return;
+    }
+    if (newFilename in task.modelAnswers) {
+      alert("同じ名前のファイルがすでに存在します。");
+      return;
+    }
+  
+    editModelFilename(filename, newFilename);
+    setEditingModelFilenames((prev) => {
+      const { [filename]: _, ...rest } = prev;
+      return rest;
+    });
   };
 
   const handleSubmit = () => {
@@ -370,7 +430,17 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                       className="mb-2"
                     />
                     {uploading && <p>アップロード中: {uploadProgress}%</p>}
-                    {element.url && <img src={element.url} alt="Uploaded" className="w-full h-auto rounded" />}
+                    {element.url && (
+                    <Image 
+                      src={element.url} 
+                      alt="Uploaded" 
+                      className="w-full h-auto rounded" 
+                      width={800}
+                      height={600}
+                      layout="responsive"
+                      objectFit="cover"
+                    />
+                  )}
                   </>
                 )}
                 {element.elementType === "code" && (
@@ -420,22 +490,82 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 <h3 className="text-lg mt-4">サンプルコード</h3>
                 {Object.entries(task.sampleCode).map(([filename, content]) => (
                   <div key={filename} className="p-2 border rounded mb-2 bg-white">
-                    <input
-                      value={filename}
-                      readOnly
-                      className="w-full p-2 border rounded mb-2 bg-gray-100"
-                    />
+                    {editingFilenames[filename] !== undefined ? (
+                      <>
+                        <input
+                          value={editingFilenames[filename]}
+                          onChange={(e) =>
+                            setEditingFilenames((prev) => ({
+                              ...prev,
+                              [filename]: e.target.value,
+                            }))
+                          }
+                          placeholder="新しいファイル名"
+                          className="w-full p-2 border rounded mb-2"
+                        />
+                        <button
+                          onClick={() => {
+                            const newFilename = editingFilenames[filename].trim();
+                            if (!newFilename) return alert("ファイル名を入力してください");
+                            if (newFilename in task.sampleCode) {
+                              return alert("同じ名前のファイルがすでに存在します");
+                            }
+                            const updatedSampleCode = { ...task.sampleCode };
+                            updatedSampleCode[newFilename] = updatedSampleCode[filename];
+                            delete updatedSampleCode[filename];
+                            setTask({ ...task, sampleCode: updatedSampleCode });
+                            setEditingFilenames((prev) => {
+                              const { [filename]: _, ...rest } = prev;
+                              return rest;
+                            });
+                          }}
+                          className="bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() =>
+                            setEditingFilenames((prev) => {
+                              const { [filename]: _, ...rest } = prev;
+                              return rest;
+                            })
+                          }
+                          className="bg-gray-500 text-white px-4 py-2 rounded"
+                        >
+                          キャンセル
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          value={filename}
+                          readOnly
+                          className="w-full p-2 border rounded mb-2 bg-gray-100"
+                        />
+                        <button
+                          onClick={() =>
+                            setEditingFilenames((prev) => ({
+                              ...prev,
+                              [filename]: filename,
+                            }))
+                          }
+                          className="bg-blue-500 text-white px-4 py-2 rounded"
+                        >
+                          編集
+                        </button>
+                      </>
+                    )}
                     <textarea
                       value={content}
                       onChange={(e) => updateSampleFile(filename, e.target.value)}
-                      placeholder="HTML/CSS/JavaScriptのコードを記述してください"
+                      placeholder="コードを記述してください"
                       className="w-full p-2 border rounded"
                     />
                     <button
                       onClick={() => removeSampleFile(filename)}
                       className="bg-red-500 text-white px-4 py-2 rounded mt-2"
                     >
-                      ファイル削除
+                      削除
                     </button>
                   </div>
                 ))}
@@ -449,22 +579,127 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 {/* テストケース */}
                 <h3 className="text-lg mt-4">テストケース</h3>
                 {task.testCases.map((testCase, index) => (
-                  <div key={index} className="flex space-x-2 mb-2">
+                  <div key={index} className="p-2 border rounded mb-2">
+                    <input
+                      value={testCase.fileName}
+                      onChange={(e) => updateTestCase(index, "fileName", e.target.value)}
+                      placeholder="ファイル名 (例: index.html)"
+                      className="w-full p-2 border rounded mb-2"
+                    />
                     <textarea
                       value={testCase.input}
                       onChange={(e) => updateTestCase(index, "input", e.target.value)}
-                      placeholder="HTML要素や属性 (例: `<div id='test'>`)"
-                      className="flex-1 p-2 border rounded"
+                      placeholder="検証対象 (例: h1)"
+                      className="w-full p-2 border rounded mb-2"
                     />
                     <textarea
-                      value={testCase.expectedOutput}
+                      value={testCase.expectedOutput || ""}
                       onChange={(e) => updateTestCase(index, "expectedOutput", e.target.value)}
-                      placeholder="期待されるDOM状態 (例: id='test'が存在する)"
-                      className="flex-1 p-2 border rounded"
+                      placeholder="期待される出力"
+                      className="w-full p-2 border rounded mb-2"
                     />
+                    {/* CSSスタイル管理 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700">期待されるCSSスタイル</label>
+                      <div className="space-y-2">
+                        {Object.entries(testCase.expectedStyle || {}).map(([property, value]) => (
+                          <div key={property} className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              defaultValue={property}
+                              onBlur={(e) => {
+                                const newProperty = e.target.value.trim();
+                                if (!newProperty) return;
+                                const updatedStyle = { ...testCase.expectedStyle };
+                                updatedStyle[newProperty] = updatedStyle[property];
+                                delete updatedStyle[property];
+                                updateTestCase(index, "expectedStyle", updatedStyle);
+                              }}
+                              placeholder="CSSプロパティ (例: color)"
+                              className="flex-1 p-2 border rounded"
+                            />
+                            <input
+                              type="text"
+                              defaultValue={value}
+                              onBlur={(e) => {
+                                const updatedStyle = { ...testCase.expectedStyle };
+                                updatedStyle[property] = e.target.value.trim();
+                                updateTestCase(index, "expectedStyle", updatedStyle);
+                              }}
+                              placeholder="期待される値 (例: blue)"
+                              className="flex-1 p-2 border rounded"
+                            />
+                            <button
+                              onClick={() => {
+                                const updatedStyle = { ...testCase.expectedStyle };
+                                delete updatedStyle[property];
+                                updateTestCase(index, "expectedStyle", updatedStyle);
+                              }}
+                              className="bg-red-500 text-white px-2 py-1 rounded"
+                            >
+                              削除
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() =>
+                            updateTestCase(index, "expectedStyle", {
+                              ...testCase.expectedStyle,
+                              "": "",
+                            })
+                          }
+                          className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                          CSSスタイル追加
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* イベント検証 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700">イベント検証</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            defaultValue={testCase.event?.type || ""}
+                            onBlur={(e) => {
+                              updateTestCase(index, "event", {
+                                ...testCase.event,
+                                type: e.target.value.trim(),
+                              });
+                            }}
+                            placeholder="イベントタイプ (例: click)"
+                            className="flex-1 p-2 border rounded"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <input
+                            type="text"
+                            defaultValue={testCase.event?.expectedOutput || ""}
+                            onBlur={(e) => {
+                              updateTestCase(index, "event", {
+                                ...testCase.event,
+                                expectedOutput: e.target.value.trim(),
+                              });
+                            }}
+                            placeholder="期待される結果 (例: Hello)"
+                            className="flex-1 p-2 border rounded"
+                          />
+                        </div>
+                        <button
+                          onClick={() =>
+                            updateTestCase(index, "event", { type: "", expectedOutput: "" })
+                          }
+                          className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                        >
+                          イベントをリセット
+                        </button>
+                      </div>
+                    </div>
                     <button
                       onClick={() => removeTestCase(index)}
-                      className="bg-red-500 text-white px-2 py-1 rounded"
+                      className="bg-red-500 text-white px-4 py-2 rounded"
                     >
                       削除
                     </button>
@@ -472,9 +707,9 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
                 ))}
                 <button
                   onClick={addTestCase}
-                  className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+                  className="bg-green-500 text-white px-4 py-2 rounded"
                 >
-                  テストケースの追加
+                  テストケース追加
                 </button>
 
                 {/* プレビュー編集 */}
@@ -582,12 +817,82 @@ export default function ContentForm({ onAddContent, onUpdateContent, selectedCon
             )}
 
             {/* 模範解答とヒント */}
-            <textarea
-              value={task.modelAnswer}
-              onChange={(e) => setTask({ ...task, modelAnswer: e.target.value })}
-              placeholder="模範解答"
-              className="w-full p-2 border rounded"
-            />
+            <div>
+              <h3 className="text-lg mt-4">模範解答</h3>
+              {Object.entries(task.modelAnswers).map(([filename, content]) => (
+                <div key={filename} className="p-2 border rounded mb-2 bg-white">
+                  {editingModelFilenames[filename] !== undefined ? (
+                    <>
+                      <input
+                        value={editingModelFilenames[filename]}
+                        onChange={(e) =>
+                          setEditingModelFilenames((prev) => ({
+                            ...prev,
+                            [filename]: e.target.value,
+                          }))
+                        }
+                        placeholder="新しいファイル名"
+                        className="w-full p-2 border rounded mb-2"
+                      />
+                      <button
+                        onClick={() => saveModelAnswerFilename(filename)}
+                        className="bg-green-500 text-white px-4 py-2 rounded"
+                      >
+                        保存
+                      </button>
+                      <button
+                        onClick={() =>
+                          setEditingModelFilenames((prev) => {
+                            const { [filename]: _, ...rest } = prev;
+                            return rest;
+                          })
+                        }
+                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                      >
+                        キャンセル
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        value={filename}
+                        readOnly
+                        className="w-full p-2 border rounded mb-2 bg-gray-100"
+                      />
+                      <button
+                        onClick={() =>
+                          setEditingModelFilenames((prev) => ({
+                            ...prev,
+                            [filename]: filename,
+                          }))
+                        }
+                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                      >
+                        編集
+                      </button>
+                    </>
+                  )}
+                  <textarea
+                    value={content}
+                    onChange={(e) => updateModelAnswerFile(filename, e.target.value)}
+                    placeholder="模範解答を記述してください"
+                    className="w-full p-2 border rounded"
+                  />
+                  <button
+                    onClick={() => removeModelAnswerFile(filename)}
+                    className="bg-red-500 text-white px-4 py-2 rounded mt-2"
+                  >
+                    削除
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addModelAnswerFile}
+                className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+              >
+                模範解答ファイル追加
+              </button>
+            </div>
             <textarea
               value={task.hint}
               onChange={(e) => setTask({ ...task, hint: e.target.value })}

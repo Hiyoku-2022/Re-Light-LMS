@@ -1,18 +1,100 @@
 "use client";
 
-import React from "react";
-import GitHubCalendar from "react-github-calendar"; // インストールしたライブラリをインポート
+import React, { useState, useEffect } from "react";
+import CalendarHeatmap from "react-calendar-heatmap";
+import "react-calendar-heatmap/dist/styles.css";
+
+interface Progress {
+  completedAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+}
 
 export default function LearningProgressCalendar() {
+  const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
+
+  useEffect(() => {
+    const fetchProgressData = async () => {
+      try {
+        const { getAuth } = await import("firebase/auth");
+        const auth = getAuth();
+        const token = await auth.currentUser?.getIdToken();
+
+        if (!token) {
+          throw new Error("User is not authenticated");
+        }
+
+        const response = await fetch(`/api/progress?token=${token}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch progress data: ${response.statusText} - ${errorText}`);
+        }
+
+        const progress: Progress[] = await response.json();
+
+        const dateCountMap: Record<string, number> = {};
+        progress.forEach((item) => {
+          if (item.completedAt && item.completedAt._seconds) {
+            const date = new Date(item.completedAt._seconds * 1000).toISOString().split("T")[0];
+            dateCountMap[date] = (dateCountMap[date] || 0) + 1;
+          } else {
+            console.warn("Skipping invalid progress item:", item);
+          }
+        });
+
+        console.log("Date Count Map:", dateCountMap);
+
+        const activityData = Object.entries(dateCountMap).map(([date, count]) => ({
+          date,
+          count,
+        }));
+
+        console.log("Activity Data for Calendar:", activityData);
+
+        setActivityData(activityData);
+      } catch (error) {
+        console.error("Error fetching progress data:", error);
+      }
+    };
+
+    fetchProgressData();
+  }, []);
+
   return (
     <div className="flex justify-center items-center p-4">
-      <GitHubCalendar
-        username="example-user" // GitHub のユーザー名を設定（後で学習データに変更）
-        blockSize={8} // 各ブロックのサイズを調整（デフォルトは 12）
-        blockMargin={2} // 各ブロックの間隔を調整
-        fontSize={14} // 月名などのフォントサイズを調整
-        colorScheme="light" // ライトモードを指定
+      <CalendarHeatmap
+        startDate={new Date("2024-01-01")}
+        endDate={new Date("2024-12-31")}
+        values={activityData}
+        classForValue={(value) => {
+          console.log("Rendering value:", value);
+          if (!value) {
+            return "color-empty";
+          }
+          if (value.count > 7) {
+            return "color-high";
+          }
+          if (value.count > 3) {
+            return "color-medium";
+          }
+          return "color-low";
+        }}
       />
+      <style jsx global>{`
+        .color-empty {
+          fill: #ebedf0;
+        }
+        .color-low {
+          fill: #c6e48b;
+        }
+        .color-medium {
+          fill: #7bc96f;
+        }
+        .color-high {
+          fill: #239a3b;
+        }
+      `}</style>
     </div>
   );
 }

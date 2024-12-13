@@ -46,7 +46,7 @@ interface Task {
   taskText: string;
   sampleCode: { [filename: string]: string };
   testCases: TestCase[];
-  modelAnswer: string;
+  modelAnswers: { [filename: string]: string };
   hint: string;
   previewCode?: string;
 }

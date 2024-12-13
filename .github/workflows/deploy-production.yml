@@ -19,8 +19,17 @@ jobs:
           node-version: '20'
 
       - name: Generate .env.production file
-        run: echo "${{ secrets.PRODUCTION_ENV_CONTENT }}" > .env.production
-
+        run: |
+          echo "NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_API_KEY }}" >> .env.production
+          echo "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}" >> .env.production
+          echo "NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_PROJECT_ID }}" >> .env.production
+          echo "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}" >> .env.production
+          echo "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}" >> .env.production
+          echo "NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.PRODUCTION_NEXT_PUBLIC_FIREBASE_APP_ID }}" >> .env.production
+          echo "FIREBASE_PROJECT_ID=${{ secrets.PRODUCTION_FIREBASE_PROJECT_ID }}" >> .env.production
+          echo "FIREBASE_CLIENT_EMAIL=${{ secrets.PRODUCTION_FIREBASE_CLIENT_EMAIL }}" >> .env.production
+          echo "FIREBASE_PRIVATE_KEY=\"$(echo ${{ secrets.PRODUCTION_FIREBASE_PRIVATE_KEY }} | base64 --decode)\"" >> .env.production
+          
       - name: Authenticate with GCP
         run: |
           echo "${{ secrets.PROD_GCP_SERVICE_ACCOUNT_KEY }}" | base64 --decode > /tmp/keyfile.json
