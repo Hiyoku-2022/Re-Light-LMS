@@ -169,44 +169,72 @@ const TaskPage: React.FC = () => {
   };
   
   const applyStyleToContainer = (container: HTMLElement, styleContent: string): void => {
-    const existingStyle = container.querySelector("style#user-style");
-    if (existingStyle) {
-      existingStyle.remove();
+    let style = container.querySelector("style#user-style");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "user-style";
+      container.appendChild(style);
+    }
+    style.textContent = styleContent;
+    console.log("Applied style content:", style.textContent);
+  };
+  
+  const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
+    // iframe を作成
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "absolute";
+    iframe.style.left = "-9999px"; // 見えない位置に配置
+    document.body.appendChild(iframe);
+  
+    const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDocument) {
+      console.error("iframe のドキュメントを取得できませんでした。");
+      return false;
     }
   
-    const style = document.createElement("style");
-    style.id = "user-style";
-    style.textContent = styleContent;
-    container.appendChild(style);
-    console.log("Style Applied to Container:", style.textContent);
-  };
-
-  const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
-    const container = document.createElement("div");
-    container.innerHTML = userCode["index.html"] || "";
-    document.body.appendChild(container);
-    
-    applyStyleToContainer(container, userCode["style.css"] || "");
+    // HTML を解析して <body> 内のコンテンツを抽出
+    const parser = new DOMParser();
+    const parsedHTML = parser.parseFromString(userCode["index.html"] || "", "text/html");
+    const bodyContent = parsedHTML.body.innerHTML; // <body> の中身だけ抽出
+  
+    // iframe に埋め込む
+    iframeDocument.open();
+    iframeDocument.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>${userCode["style.css"] || ""}</style>
+        </head>
+        <body>
+          ${bodyContent}
+        </body>
+      </html>
+    `);
+    iframeDocument.close();
+  
+    // スタイルが適用されるのを待つ
+    await new Promise((resolve) => setTimeout(resolve, 100));
   
     let allTestsPassed = true;
   
     testCases.forEach(({ input, expectedStyle }) => {
-      const element = container.querySelector(input) as HTMLElement;
+      const element = iframeDocument.querySelector(input) as HTMLElement;
   
       if (!element) {
         console.error(`要素が見つかりません: ${input}`);
+        console.log("Available elements in iframe:", iframeDocument.body.innerHTML);
         allTestsPassed = false;
         return;
       }
   
-      const computedStyle = window.getComputedStyle(element);
+      const computedStyle = iframeDocument.defaultView?.getComputedStyle(element);
   
       const computedStyleMatches = expectedStyle
         ? Object.entries(expectedStyle).every(([key, value]) => {
-            const computedValue = computedStyle.getPropertyValue(key);
+            const computedValue = computedStyle?.getPropertyValue(key);
   
-            if (key === "color") {
-              return compareColors(computedValue, value);
+            if (key === "color" || key === "background-color") {
+              return compareColors(computedValue || "", value);
             }
   
             return computedValue === value;
@@ -217,16 +245,18 @@ const TaskPage: React.FC = () => {
         console.error("スタイルが一致しません:", {
           input,
           expectedStyle,
-          computedStyles: computedStyle.cssText,
+          computedStyles: computedStyle?.cssText,
         });
         allTestsPassed = false;
       }
     });
   
-    document.body.removeChild(container);
+    // iframe を削除
+    document.body.removeChild(iframe);
+  
     return allTestsPassed;
   };
-    
+        
   const compareColors = (computedValue: string, expectedValue: string): boolean => {
     const normalizeColor = (color: string): string => {
       const div = document.createElement("div");
@@ -239,7 +269,7 @@ const TaskPage: React.FC = () => {
   
     return normalizeColor(computedValue) === normalizeColor(expectedValue);
   };
-      
+        
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
