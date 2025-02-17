@@ -145,6 +145,8 @@ const TaskPage: React.FC = () => {
     `;
   };
 
+  const [consoleOutput, setConsoleOutput] = useState<string>("");
+
   const executeJsCode = async (jsCode: string): Promise<string | null> => {
     const API_URL = process.env.NEXT_PUBLIC_JS_EXECUTOR_API;
     if (!API_URL) {
@@ -172,27 +174,34 @@ const TaskPage: React.FC = () => {
         // ❌ Cloud Run のレスポンスが 400 などのエラーのとき
         const errorData = await response.json();
         console.debug("❌ Cloud Run からのエラーレスポンス:", errorData);
+        setConsoleOutput(`⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`);
         return `⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`;
       }
   
       const data = await response.json();
       console.debug("🌍 Cloud Run からのレスポンス:", data);
   
+      // コンソール出力を更新
+      setConsoleOutput(data.output || "✅ コードが実行されましたが、出力がありません。");
+  
       return data.output || "✅ コードが実行されましたが、出力がありません。";
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === "AbortError") {
+          setConsoleOutput("⚠️ 実行がタイムアウトしました");
           return "⚠️ 実行がタイムアウトしました";
         }
         console.debug("❌ リクエストエラー:", error);
+        setConsoleOutput("⚠️ サーバーに接続できませんでした");
         return "⚠️ サーバーに接続できませんでした";
       }
   
       console.debug("❌ 未知のエラー:", error);
+      setConsoleOutput("⚠️ 予期しないエラーが発生しました");
       return "⚠️ 予期しないエラーが発生しました";
     }
   };
-  
+    
   const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [showNextButton, setShowNextButton] = useState<boolean>(false);
 
@@ -473,35 +482,45 @@ const TaskPage: React.FC = () => {
       </div>
 
         {/* 右エディター */}
-        <div className="w-1/2 flex flex-col bg-white h-full overflow-hidden">
-          {/* ファイルタブ */}
-          <div className="tabs flex border-b bg-gray-50">
+        <div className="w-1/2 flex flex-col bg-white h-full pb-8">
+        {/* ファイルタブ */}
+        <div className="tabs flex border-b bg-gray-50">
             {Object.keys(userCode).map((fileName) => (
-              <button
+            <button
                 key={fileName}
                 className={`flex-1 p-4 ${
-                  currentFile === fileName ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
+                currentFile === fileName ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
                 }`}
                 onClick={() => handleFileTabClick(fileName)}
-              >
+            >
                 {fileName}
-              </button>
+            </button>
             ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <h2 className="text-lg font-semibold mb-4">コードエディタ: {currentFile}</h2>
+        </div>
+
+        {/* コードエディターエリア */}
+        <div className="flex-1 px-2 overflow-hidden">
+            <h2 className="text-lg font-semibold mb-2">コードエディタ: {currentFile}</h2>
             <MonacoEditor
-              height="100%"
-              language={editorLanguage}
-              value={userCode[currentFile || ""]}
-              onChange={handleCodeChange}
-              onMount={handleEditorDidMount}
-              options={{
+            height="calc(100% - 50px)"
+            language={editorLanguage}
+            value={userCode[currentFile || ""]}
+            onChange={handleCodeChange}
+            onMount={handleEditorDidMount}
+            options={{
                 minimap: { enabled: false },
                 fontSize: 14,
-              }}
+            }}
             />
-          </div>
+        </div>
+
+        {/* コンソール出力エリア */}
+        <div className="px-2"> 
+            <p className="text-sm font-semibold text-gray-600">コンソール</p>
+            <div className="bg-gray-900 text-white p-2 h-28 overflow-auto rounded-lg">
+            <pre className="text-sm whitespace-pre-wrap">{consoleOutput}</pre>
+            </div>
+        </div>
         </div>
       </div>
 
