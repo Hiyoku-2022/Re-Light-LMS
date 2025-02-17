@@ -145,6 +145,8 @@ const TaskPage: React.FC = () => {
     `;
   };
 
+  const [consoleOutput, setConsoleOutput] = useState<string>("");
+
   const executeJsCode = async (jsCode: string): Promise<string | null> => {
     const API_URL = process.env.NEXT_PUBLIC_JS_EXECUTOR_API;
     if (!API_URL) {
@@ -153,28 +155,56 @@ const TaskPage: React.FC = () => {
     }
   
     try {
-      console.log("🚀 Cloud Run にリクエスト送信:", jsCode);
+      console.debug("🚀 Cloud Run にリクエスト送信:", jsCode);
+  
+      // タイムアウト制御
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
   
       const response = await fetch(`${API_URL}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: jsCode }),
+        signal: controller.signal,
       });
   
-      const data = await response.json();
-      console.log("🌍 Cloud Run からのレスポンス:", data);
+      clearTimeout(timeoutId);
   
-      if (data.error) {
-        return `エラー: ${data.error}`;
-      } else {
-        return data.output;
+      if (!response.ok) {
+        // ❌ Cloud Run のレスポンスが 400 などのエラーのとき
+        const errorData = await response.json();
+        console.debug("❌ Cloud Run からのエラーレスポンス:", errorData);
+        setConsoleOutput(`⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`);
+        return `⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`;
       }
+  
+      const data = await response.json();
+      console.debug("🌍 Cloud Run からのレスポンス:", data);
+  
+      // コンソール出力を更新
+      setConsoleOutput(data.output || "✅ コードが実行されましたが、出力がありません。");
+  
+      return data.output || "✅ コードが実行されましたが、出力がありません。";
     } catch (error) {
-      console.error("❌ リクエストエラー:", error);
-      return "サーバーに接続できませんでした";
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          setConsoleOutput("⚠️ 実行がタイムアウトしました");
+          return "⚠️ 実行がタイムアウトしました";
+        }
+        console.debug("❌ リクエストエラー:", error);
+        setConsoleOutput("⚠️ サーバーに接続できませんでした");
+        return "⚠️ サーバーに接続できませんでした";
+      }
+  
+      console.debug("❌ 未知のエラー:", error);
+      setConsoleOutput("⚠️ 予期しないエラーが発生しました");
+      return "⚠️ 予期しないエラーが発生しました";
     }
   };
     
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
+  const [showNextButton, setShowNextButton] = useState<boolean>(false);
+
   const handleSubmit = async () => {
     if (!task || !userId) {
       alert("タスクまたはユーザー情報が見つかりません。");
@@ -182,48 +212,21 @@ const TaskPage: React.FC = () => {
     }
   
     try {
-      // テストケースの実行
+      // 🔹 テストケースの実行
       const allTestsPassed = await validateTask(userCode, task.testCases);
   
       if (allTestsPassed) {
-        alert("正解！次のタスクに進めます！");
+        // 🔹 「正解！」のモーダルを表示
+        setModalMessage("🎉 正解！おめでとうございます！");
+        setShowNextButton(true); // 次へ進むボタンを表示
   
-        // 進捗情報をFirestoreに保存
-        const progressRef = doc(db, "progress", `${userId}_${id}`);
-        await updateDoc(progressRef, {
-          isCompleted: true,
-          completedAt: Timestamp.now(),
-        });
-  
-        // 次のタスクへの遷移処理
-        const nextOrder = task.stepOrder + 1;
-        const nextContentQuery = query(
-          collection(db, "contents"),
-          where("stepOrder", "==", nextOrder),
-          limit(1)
-        );
-  
-        const querySnapshot = await getDocs(nextContentQuery);
-        if (!querySnapshot.empty) {
-          const nextContent = querySnapshot.docs[0];
-          const nextContentId = nextContent.id;
-          const nextContentData = nextContent.data();
-          const nextContentType = nextContentData.type;
-  
-          if (nextContentType === "task") {
-            router.push(`/task/${nextContentId}`);
-          } else if (nextContentType === "content") {
-            router.push(`/content/${nextContentId}`);
-          } else {
-            console.error("不明なコンテンツタイプです:", nextContentType);
-            router.push("/dashboard");
-          }
-        } else {
-          alert("おめでとうございます！すべてのタスクを完了しました。");
-          router.push("/dashboard");
-        }
+        // 🔹 2秒後に自動で遷移（コメントアウトして手動ボタンに変更も可）
+        // setTimeout(() => moveToNextTask(), 2000);
       } else {
-        alert("不正解です。もう一度トライしてみてください！");
+        setModalMessage(
+          `❌ 不正解です。\n\nコードを確認して、もう一度トライしてみてください！`
+        );
+        setShowNextButton(false); // 不正解の場合は「次へ進む」ボタンを表示しない
       }
     } catch (error) {
       console.error("コード検証エラー:", error);
@@ -231,6 +234,47 @@ const TaskPage: React.FC = () => {
     }
   };
   
+  // 🔹 次のタスクへ遷移する関数
+  const moveToNextTask = async () => {
+    if (!task || !userId) return;
+  
+    try {
+      const progressRef = doc(db, "progress", `${userId}_${id}`);
+      await updateDoc(progressRef, {
+        isCompleted: true,
+        completedAt: Timestamp.now(),
+      });
+  
+      const nextOrder = task.stepOrder + 1;
+      const nextContentQuery = query(
+        collection(db, "contents"),
+        where("stepOrder", "==", nextOrder),
+        limit(1)
+      );
+  
+      const querySnapshot = await getDocs(nextContentQuery);
+      if (!querySnapshot.empty) {
+        const nextContent = querySnapshot.docs[0];
+        const nextContentId = nextContent.id;
+        const nextContentType = nextContent.data().type;
+  
+        if (nextContentType === "task") {
+          router.push(`/task/${nextContentId}`);
+        } else if (nextContentType === "content") {
+          router.push(`/content/${nextContentId}`);
+        } else {
+          console.error("不明なコンテンツタイプです:", nextContentType);
+          router.push("/dashboard");
+        }
+      } else {
+        alert("🎉 おめでとうございます！すべてのタスクを完了しました！");
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error("次のタスクへの遷移エラー:", error);
+    }
+  };
+    
   const applyStyleToContainer = (container: HTMLElement, styleContent: string): void => {
     let style = container.querySelector("style#user-style");
     if (!style) {
@@ -245,7 +289,7 @@ const TaskPage: React.FC = () => {
   const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
     let allTestsPassed = true;
   
-    // ✅ HTML & CSS の正誤判定（既存の判定を維持）
+    // HTML & CSS の正誤判定（既存の判定を維持）
     const iframe = document.createElement("iframe");
     iframe.style.position = "absolute";
     iframe.style.left = "-9999px"; // 見えない位置に配置
@@ -279,7 +323,7 @@ const TaskPage: React.FC = () => {
   
     await new Promise((resolve) => setTimeout(resolve, 100));
   
-    // ✅ HTML / CSS のテストを実行
+    // HTML / CSS のテストを実行
     for (const testCase of testCases) {
       if (testCase.fileName === "script.js") {
         // JS の場合はスキップ（後で別処理）
@@ -317,27 +361,35 @@ const TaskPage: React.FC = () => {
       }
     }
   
-    // ✅ JavaScript の正誤判定を追加
+    // JavaScript の正誤判定を追加
     if (userCode["script.js"]) {
-      console.log("JS テストを開始");
       const jsTestCases = testCases.filter((t) => t.fileName === "script.js");
-  
+    
       for (const testCase of jsTestCases) {
         const expectedJsOutput = testCase.expectedOutput;
-  
-        // `expectedOutput` が `undefined` の場合に `trim()` しないよう修正
-        const normalizedExpectedOutput = expectedJsOutput ? expectedJsOutput.trim() : null;
-  
+    
+        // 改行コードのエスケープ処理
+        const normalizeNewlines = (str: string) =>
+          str.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+    
+        // 各行の前後の空白を削除して統一
+        const normalizeWhitespace = (str: string) =>
+          str.split("\n").map(line => line.trim()).join("\n");
+    
+        // JavaScriptの出力を取得
         const jsOutput = await executeJsCode(userCode["script.js"]);
-        const normalizedJsOutput = jsOutput ? jsOutput.trim() : null;
-  
+    
+        // 期待値と実際の出力を標準化
+        const normalizedJsOutput = jsOutput ? normalizeWhitespace(normalizeNewlines(jsOutput)) : null;
+        const normalizedExpectedOutput = expectedJsOutput ? normalizeWhitespace(normalizeNewlines(expectedJsOutput)) : null;
+    
+        // 結果をチェック
         if (normalizedJsOutput === null || (normalizedExpectedOutput !== null && normalizedJsOutput !== normalizedExpectedOutput)) {
-          console.error(`JavaScript の実行結果が期待値と異なります: ${normalizedJsOutput}`);
           allTestsPassed = false;
         }
       }
     }
-  
+      
     // iframe を削除
     document.body.removeChild(iframe);
   
@@ -430,35 +482,45 @@ const TaskPage: React.FC = () => {
       </div>
 
         {/* 右エディター */}
-        <div className="w-1/2 flex flex-col bg-white h-full overflow-hidden">
-          {/* ファイルタブ */}
-          <div className="tabs flex border-b bg-gray-50">
+        <div className="w-1/2 flex flex-col bg-white h-full pb-8">
+        {/* ファイルタブ */}
+        <div className="tabs flex border-b bg-gray-50">
             {Object.keys(userCode).map((fileName) => (
-              <button
+            <button
                 key={fileName}
                 className={`flex-1 p-4 ${
-                  currentFile === fileName ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
+                currentFile === fileName ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
                 }`}
                 onClick={() => handleFileTabClick(fileName)}
-              >
+            >
                 {fileName}
-              </button>
+            </button>
             ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <h2 className="text-lg font-semibold mb-4">コードエディタ: {currentFile}</h2>
+        </div>
+
+        {/* コードエディターエリア */}
+        <div className="flex-1 px-2 overflow-hidden">
+            <h2 className="text-lg font-semibold mb-2">コードエディタ: {currentFile}</h2>
             <MonacoEditor
-              height="100%"
-              language={editorLanguage}
-              value={userCode[currentFile || ""]}
-              onChange={handleCodeChange}
-              onMount={handleEditorDidMount}
-              options={{
+            height="calc(100% - 50px)"
+            language={editorLanguage}
+            value={userCode[currentFile || ""]}
+            onChange={handleCodeChange}
+            onMount={handleEditorDidMount}
+            options={{
                 minimap: { enabled: false },
                 fontSize: 14,
-              }}
+            }}
             />
-          </div>
+        </div>
+
+        {/* コンソール出力エリア */}
+        <div className="px-2"> 
+            <p className="text-sm font-semibold text-gray-600">コンソール</p>
+            <div className="bg-gray-900 text-white p-2 h-28 overflow-auto rounded-lg">
+            <pre className="text-sm whitespace-pre-wrap">{consoleOutput}</pre>
+            </div>
+        </div>
         </div>
       </div>
 
@@ -475,6 +537,41 @@ const TaskPage: React.FC = () => {
           </button>
         </div>
       </footer>
+      {modalMessage && (
+        <div 
+          className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => setModalMessage(null)}
+        >
+          <div 
+            className="bg-white p-6 rounded-lg shadow-lg relative text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+              onClick={() => setModalMessage(null)}
+            >
+              ✕
+            </button>
+            <p style={{ 
+                whiteSpace: "pre-line", 
+                textAlign: "center", 
+                fontSize: "18px", 
+                lineHeight: "1.6"
+            }}>
+                {modalMessage}
+            </p>
+            
+            {showNextButton && (
+              <button
+                onClick={moveToNextTask}
+                className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
+              >
+                次へ進む
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
