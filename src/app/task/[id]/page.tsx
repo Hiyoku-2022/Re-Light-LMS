@@ -192,7 +192,10 @@ const TaskPage: React.FC = () => {
       return "⚠️ 予期しないエラーが発生しました";
     }
   };
-        
+  
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
+  const [showNextButton, setShowNextButton] = useState<boolean>(false);
+
   const handleSubmit = async () => {
     if (!task || !userId) {
       alert("タスクまたはユーザー情報が見つかりません。");
@@ -200,48 +203,21 @@ const TaskPage: React.FC = () => {
     }
   
     try {
-      // テストケースの実行
+      // 🔹 テストケースの実行
       const allTestsPassed = await validateTask(userCode, task.testCases);
   
       if (allTestsPassed) {
-        alert("正解！次のタスクに進めます！");
+        // 🔹 「正解！」のモーダルを表示
+        setModalMessage("🎉 正解！おめでとうございます！");
+        setShowNextButton(true); // 次へ進むボタンを表示
   
-        // 進捗情報をFirestoreに保存
-        const progressRef = doc(db, "progress", `${userId}_${id}`);
-        await updateDoc(progressRef, {
-          isCompleted: true,
-          completedAt: Timestamp.now(),
-        });
-  
-        // 次のタスクへの遷移処理
-        const nextOrder = task.stepOrder + 1;
-        const nextContentQuery = query(
-          collection(db, "contents"),
-          where("stepOrder", "==", nextOrder),
-          limit(1)
-        );
-  
-        const querySnapshot = await getDocs(nextContentQuery);
-        if (!querySnapshot.empty) {
-          const nextContent = querySnapshot.docs[0];
-          const nextContentId = nextContent.id;
-          const nextContentData = nextContent.data();
-          const nextContentType = nextContentData.type;
-  
-          if (nextContentType === "task") {
-            router.push(`/task/${nextContentId}`);
-          } else if (nextContentType === "content") {
-            router.push(`/content/${nextContentId}`);
-          } else {
-            console.error("不明なコンテンツタイプです:", nextContentType);
-            router.push("/dashboard");
-          }
-        } else {
-          alert("おめでとうございます！すべてのタスクを完了しました。");
-          router.push("/dashboard");
-        }
+        // 🔹 2秒後に自動で遷移（コメントアウトして手動ボタンに変更も可）
+        // setTimeout(() => moveToNextTask(), 2000);
       } else {
-        alert("不正解です。もう一度トライしてみてください！");
+        setModalMessage(
+          `❌ 不正解です。\n\nコードを確認して、もう一度トライしてみてください！`
+        );
+        setShowNextButton(false); // 不正解の場合は「次へ進む」ボタンを表示しない
       }
     } catch (error) {
       console.error("コード検証エラー:", error);
@@ -249,6 +225,47 @@ const TaskPage: React.FC = () => {
     }
   };
   
+  // 🔹 次のタスクへ遷移する関数
+  const moveToNextTask = async () => {
+    if (!task || !userId) return;
+  
+    try {
+      const progressRef = doc(db, "progress", `${userId}_${id}`);
+      await updateDoc(progressRef, {
+        isCompleted: true,
+        completedAt: Timestamp.now(),
+      });
+  
+      const nextOrder = task.stepOrder + 1;
+      const nextContentQuery = query(
+        collection(db, "contents"),
+        where("stepOrder", "==", nextOrder),
+        limit(1)
+      );
+  
+      const querySnapshot = await getDocs(nextContentQuery);
+      if (!querySnapshot.empty) {
+        const nextContent = querySnapshot.docs[0];
+        const nextContentId = nextContent.id;
+        const nextContentType = nextContent.data().type;
+  
+        if (nextContentType === "task") {
+          router.push(`/task/${nextContentId}`);
+        } else if (nextContentType === "content") {
+          router.push(`/content/${nextContentId}`);
+        } else {
+          console.error("不明なコンテンツタイプです:", nextContentType);
+          router.push("/dashboard");
+        }
+      } else {
+        alert("🎉 おめでとうございます！すべてのタスクを完了しました！");
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error("次のタスクへの遷移エラー:", error);
+    }
+  };
+    
   const applyStyleToContainer = (container: HTMLElement, styleContent: string): void => {
     let style = container.querySelector("style#user-style");
     if (!style) {
@@ -501,6 +518,41 @@ const TaskPage: React.FC = () => {
           </button>
         </div>
       </footer>
+      {modalMessage && (
+        <div 
+          className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => setModalMessage(null)}
+        >
+          <div 
+            className="bg-white p-6 rounded-lg shadow-lg relative text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+              onClick={() => setModalMessage(null)}
+            >
+              ✕
+            </button>
+            <p style={{ 
+                whiteSpace: "pre-line", 
+                textAlign: "center", 
+                fontSize: "18px", 
+                lineHeight: "1.6"
+            }}>
+                {modalMessage}
+            </p>
+            
+            {showNextButton && (
+              <button
+                onClick={moveToNextTask}
+                className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
+              >
+                次へ進む
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
