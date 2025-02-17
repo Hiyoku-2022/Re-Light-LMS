@@ -49,7 +49,8 @@ const TaskPage: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [tab, setTab] = useState<"problem" | "preview">("problem");
   const [previewTab, setPreviewTab] = useState<"sample" | "user">("sample"); 
-
+  const [editorLanguage, setEditorLanguage] = useState<string>("plaintext");
+  
   useEffect(() => {
     // 認証状態の監視
     const auth = getAuth();
@@ -108,10 +109,72 @@ const TaskPage: React.FC = () => {
     monaco.editor.setTheme("vs-dark");
   };
 
+  useEffect(() => {
+    setEditorLanguage(getLanguageFromFilename(currentFile));
+  }, [currentFile]);
+
   const handleFileTabClick = (fileName: string) => {
     setCurrentFile(fileName);
   };
 
+  const getLanguageFromFilename = (filename: string | null): string => {
+    if (!filename) return "plaintext"; // デフォルト
+    if (filename.endsWith(".js")) return "javascript";
+    if (filename.endsWith(".css")) return "css";
+    if (filename.endsWith(".html")) return "html";
+    return "plaintext"; // その他のファイルはプレーンテキストとして扱う
+  };
+  
+  const generateUserPreview = (): string => {
+    const html = userCode["index.html"] || "";
+    const css = userCode["style.css"] || "";
+    const js = userCode["script.js"] || "";
+    return `
+      <!DOCTYPE html>
+      <html lang="ja">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>${css}</style>
+        </head>
+        <body>
+          ${html}
+          <script>${js}</script>
+        </body>
+      </html>
+    `;
+  };
+
+  const executeJsCode = async (jsCode: string): Promise<string | null> => {
+    const API_URL = process.env.NEXT_PUBLIC_JS_EXECUTOR_API;
+    if (!API_URL) {
+      alert("環境変数が設定されていません");
+      return null;
+    }
+  
+    try {
+      console.log("🚀 Cloud Run にリクエスト送信:", jsCode);
+  
+      const response = await fetch(`${API_URL}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: jsCode }),
+      });
+  
+      const data = await response.json();
+      console.log("🌍 Cloud Run からのレスポンス:", data);
+  
+      if (data.error) {
+        return `エラー: ${data.error}`;
+      } else {
+        return data.output;
+      }
+    } catch (error) {
+      console.error("❌ リクエストエラー:", error);
+      return "サーバーに接続できませんでした";
+    }
+  };
+    
   const handleSubmit = async () => {
     if (!task || !userId) {
       alert("タスクまたはユーザー情報が見つかりません。");
@@ -180,24 +243,26 @@ const TaskPage: React.FC = () => {
   };
   
   const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
-    // iframe を作成
+    let allTestsPassed = true;
+  
+    // ✅ HTML & CSS の正誤判定（既存の判定を維持）
     const iframe = document.createElement("iframe");
     iframe.style.position = "absolute";
     iframe.style.left = "-9999px"; // 見えない位置に配置
     document.body.appendChild(iframe);
-  
     const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
+  
     if (!iframeDocument) {
       console.error("iframe のドキュメントを取得できませんでした。");
       return false;
     }
   
-    // HTML を解析して <body> 内のコンテンツを抽出
+    // HTML をパース
     const parser = new DOMParser();
     const parsedHTML = parser.parseFromString(userCode["index.html"] || "", "text/html");
-    const bodyContent = parsedHTML.body.innerHTML; // <body> の中身だけ抽出
+    const bodyContent = parsedHTML.body.innerHTML;
   
-    // iframe に埋め込む
+    // iframe に HTML & CSS を埋め込む
     iframeDocument.open();
     iframeDocument.write(`
       <!DOCTYPE html>
@@ -212,51 +277,73 @@ const TaskPage: React.FC = () => {
     `);
     iframeDocument.close();
   
-    // スタイルが適用されるのを待つ
     await new Promise((resolve) => setTimeout(resolve, 100));
   
-    let allTestsPassed = true;
+    // ✅ HTML / CSS のテストを実行
+    for (const testCase of testCases) {
+      if (testCase.fileName === "script.js") {
+        // JS の場合はスキップ（後で別処理）
+        continue;
+      }
   
-    testCases.forEach(({ input, expectedStyle }) => {
+      const { input, expectedStyle } = testCase;
+      if (!input) continue; // 空のセレクタはスキップ
+  
       const element = iframeDocument.querySelector(input) as HTMLElement;
-  
       if (!element) {
         console.error(`要素が見つかりません: ${input}`);
         console.log("Available elements in iframe:", iframeDocument.body.innerHTML);
         allTestsPassed = false;
-        return;
+        continue;
       }
   
-      const computedStyle = iframeDocument.defaultView?.getComputedStyle(element);
-  
-      const computedStyleMatches = expectedStyle
-        ? Object.entries(expectedStyle).every(([key, value]) => {
-            const computedValue = computedStyle?.getPropertyValue(key);
-  
-            if (key === "color" || key === "background-color") {
-              return compareColors(computedValue || "", value);
-            }
-  
-            return computedValue === value;
-          })
-        : true;
-  
-      if (!computedStyleMatches) {
-        console.error("スタイルが一致しません:", {
-          input,
-          expectedStyle,
-          computedStyles: computedStyle?.cssText,
+      if (expectedStyle) {
+        const computedStyle = iframeDocument.defaultView?.getComputedStyle(element);
+        const computedStyleMatches = Object.entries(expectedStyle).every(([key, value]) => {
+          const computedValue = computedStyle?.getPropertyValue(key);
+          return key === "color" || key === "background-color"
+            ? compareColors(computedValue || "", value)
+            : computedValue === value;
         });
-        allTestsPassed = false;
+  
+        if (!computedStyleMatches) {
+          console.error("スタイルが一致しません:", {
+            input,
+            expectedStyle,
+            computedStyles: computedStyle?.cssText,
+          });
+          allTestsPassed = false;
+        }
       }
-    });
+    }
+  
+    // ✅ JavaScript の正誤判定を追加
+    if (userCode["script.js"]) {
+      console.log("JS テストを開始");
+      const jsTestCases = testCases.filter((t) => t.fileName === "script.js");
+  
+      for (const testCase of jsTestCases) {
+        const expectedJsOutput = testCase.expectedOutput;
+  
+        // `expectedOutput` が `undefined` の場合に `trim()` しないよう修正
+        const normalizedExpectedOutput = expectedJsOutput ? expectedJsOutput.trim() : null;
+  
+        const jsOutput = await executeJsCode(userCode["script.js"]);
+        const normalizedJsOutput = jsOutput ? jsOutput.trim() : null;
+  
+        if (normalizedJsOutput === null || (normalizedExpectedOutput !== null && normalizedJsOutput !== normalizedExpectedOutput)) {
+          console.error(`JavaScript の実行結果が期待値と異なります: ${normalizedJsOutput}`);
+          allTestsPassed = false;
+        }
+      }
+    }
   
     // iframe を削除
     document.body.removeChild(iframe);
   
     return allTestsPassed;
   };
-        
+              
   const compareColors = (computedValue: string, expectedValue: string): boolean => {
     const normalizeColor = (color: string): string => {
       const div = document.createElement("div");
@@ -281,7 +368,7 @@ const TaskPage: React.FC = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
       <Header dashboardType="user" onToggleSidebar={() => {}} />
-      <div className="flex flex-1 overflow-hidden pt-16">
+      <div className="flex flex-1 overflow-hidden pt-16 pb-16">
       {/* 左サイドバー */}
       <div className="w-1/2 bg-white border-r flex flex-col h-full overflow-hidden">
         <div className="tabs flex justify-center border-b bg-gray-50">
@@ -335,17 +422,7 @@ const TaskPage: React.FC = () => {
               {previewTab === "sample" && task.previewCode ? (
                 <iframe src={task.previewCode} className="w-full h-96 border rounded" title="サンプルプレビュー" />
               ) : (
-                <iframe
-                  srcDoc={Object.entries(userCode)
-                    .map(([fileName, content]) =>
-                      fileName.endsWith(".css")
-                        ? `<style>${content}</style>`
-                        : content
-                    )
-                    .join("\n")}
-                  className="w-full h-96 border rounded"
-                  title="ユーザープレビュー"
-                />
+                <iframe srcDoc={generateUserPreview()} className="w-full h-96 border rounded" title="ユーザープレビュー" />
               )}
             </div>
           )}
@@ -372,7 +449,7 @@ const TaskPage: React.FC = () => {
             <h2 className="text-lg font-semibold mb-4">コードエディタ: {currentFile}</h2>
             <MonacoEditor
               height="100%"
-              defaultLanguage={currentFile?.endsWith(".css") ? "css" : "html"}
+              language={editorLanguage}
               value={userCode[currentFile || ""]}
               onChange={handleCodeChange}
               onMount={handleEditorDidMount}
