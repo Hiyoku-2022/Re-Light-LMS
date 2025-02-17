@@ -153,28 +153,46 @@ const TaskPage: React.FC = () => {
     }
   
     try {
-      console.log("🚀 Cloud Run にリクエスト送信:", jsCode);
+      console.debug("🚀 Cloud Run にリクエスト送信:", jsCode);
+  
+      // タイムアウト制御
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
   
       const response = await fetch(`${API_URL}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: jsCode }),
+        signal: controller.signal,
       });
   
-      const data = await response.json();
-      console.log("🌍 Cloud Run からのレスポンス:", data);
+      clearTimeout(timeoutId);
   
-      if (data.error) {
-        return `エラー: ${data.error}`;
-      } else {
-        return data.output;
+      if (!response.ok) {
+        // ❌ Cloud Run のレスポンスが 400 などのエラーのとき
+        const errorData = await response.json();
+        console.debug("❌ Cloud Run からのエラーレスポンス:", errorData);
+        return `⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`;
       }
+  
+      const data = await response.json();
+      console.debug("🌍 Cloud Run からのレスポンス:", data);
+  
+      return data.output || "✅ コードが実行されましたが、出力がありません。";
     } catch (error) {
-      console.error("❌ リクエストエラー:", error);
-      return "サーバーに接続できませんでした";
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          return "⚠️ 実行がタイムアウトしました";
+        }
+        console.debug("❌ リクエストエラー:", error);
+        return "⚠️ サーバーに接続できませんでした";
+      }
+  
+      console.debug("❌ 未知のエラー:", error);
+      return "⚠️ 予期しないエラーが発生しました";
     }
   };
-    
+        
   const handleSubmit = async () => {
     if (!task || !userId) {
       alert("タスクまたはユーザー情報が見つかりません。");
@@ -245,7 +263,7 @@ const TaskPage: React.FC = () => {
   const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
     let allTestsPassed = true;
   
-    // ✅ HTML & CSS の正誤判定（既存の判定を維持）
+    // HTML & CSS の正誤判定（既存の判定を維持）
     const iframe = document.createElement("iframe");
     iframe.style.position = "absolute";
     iframe.style.left = "-9999px"; // 見えない位置に配置
@@ -279,7 +297,7 @@ const TaskPage: React.FC = () => {
   
     await new Promise((resolve) => setTimeout(resolve, 100));
   
-    // ✅ HTML / CSS のテストを実行
+    // HTML / CSS のテストを実行
     for (const testCase of testCases) {
       if (testCase.fileName === "script.js") {
         // JS の場合はスキップ（後で別処理）
@@ -317,27 +335,35 @@ const TaskPage: React.FC = () => {
       }
     }
   
-    // ✅ JavaScript の正誤判定を追加
+    // JavaScript の正誤判定を追加
     if (userCode["script.js"]) {
-      console.log("JS テストを開始");
       const jsTestCases = testCases.filter((t) => t.fileName === "script.js");
-  
+    
       for (const testCase of jsTestCases) {
         const expectedJsOutput = testCase.expectedOutput;
-  
-        // `expectedOutput` が `undefined` の場合に `trim()` しないよう修正
-        const normalizedExpectedOutput = expectedJsOutput ? expectedJsOutput.trim() : null;
-  
+    
+        // 改行コードのエスケープ処理
+        const normalizeNewlines = (str: string) =>
+          str.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+    
+        // 各行の前後の空白を削除して統一
+        const normalizeWhitespace = (str: string) =>
+          str.split("\n").map(line => line.trim()).join("\n");
+    
+        // JavaScriptの出力を取得
         const jsOutput = await executeJsCode(userCode["script.js"]);
-        const normalizedJsOutput = jsOutput ? jsOutput.trim() : null;
-  
+    
+        // 期待値と実際の出力を標準化
+        const normalizedJsOutput = jsOutput ? normalizeWhitespace(normalizeNewlines(jsOutput)) : null;
+        const normalizedExpectedOutput = expectedJsOutput ? normalizeWhitespace(normalizeNewlines(expectedJsOutput)) : null;
+    
+        // 結果をチェック
         if (normalizedJsOutput === null || (normalizedExpectedOutput !== null && normalizedJsOutput !== normalizedExpectedOutput)) {
-          console.error(`JavaScript の実行結果が期待値と異なります: ${normalizedJsOutput}`);
           allTestsPassed = false;
         }
       }
     }
-  
+      
     // iframe を削除
     document.body.removeChild(iframe);
   
