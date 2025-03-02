@@ -17,6 +17,8 @@ import {
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Header } from "@/components/UI/Header";
+import { executeJsCode } from "@/utils/executors/executeJs";
+import { executePhpCode } from "@/utils/executors/executePhp";
 
 interface TaskData {
   title: string;
@@ -120,6 +122,7 @@ const TaskPage: React.FC = () => {
   const getLanguageFromFilename = (filename: string | null): string => {
     if (!filename) return "plaintext"; // デフォルト
     if (filename.endsWith(".js")) return "javascript";
+    if (filename.endsWith(".php")) return "php";
     if (filename.endsWith(".css")) return "css";
     if (filename.endsWith(".html")) return "html";
     return "plaintext"; // その他のファイルはプレーンテキストとして扱う
@@ -147,61 +150,30 @@ const TaskPage: React.FC = () => {
 
   const [consoleOutput, setConsoleOutput] = useState<string>("");
 
-  const executeJsCode = async (jsCode: string): Promise<string | null> => {
-    const API_URL = process.env.NEXT_PUBLIC_JS_EXECUTOR_API;
-    if (!API_URL) {
-      alert("環境変数が設定されていません");
-      return null;
+  const executeCode = async () => {
+    if (!currentFile || !userCode[currentFile]) {
+      setConsoleOutput("⚠️ 実行するコードがありません");
+      return;
     }
-  
+
+    const code = userCode[currentFile];
+
     try {
-      console.debug("🚀 Cloud Run にリクエスト送信:", jsCode);
-  
-      // タイムアウト制御
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
-  
-      const response = await fetch(`${API_URL}/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: jsCode }),
-        signal: controller.signal,
-      });
-  
-      clearTimeout(timeoutId);
-  
-      if (!response.ok) {
-        // ❌ Cloud Run のレスポンスが 400 などのエラーのとき
-        const errorData = await response.json();
-        console.debug("❌ Cloud Run からのエラーレスポンス:", errorData);
-        setConsoleOutput(`⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`);
-        return `⚠️ 実行エラー: ${errorData.error || "不明なエラー"}`;
+      let output = "";
+      if (currentFile.endsWith(".js")) {
+        output = await executeJsCode(code);
+      } else if (currentFile.endsWith(".php")) {
+        output = await executePhpCode(code);
+      } else {
+        output = "⚠️ このファイルのコード実行はサポートされていません";
       }
-  
-      const data = await response.json();
-      console.debug("🌍 Cloud Run からのレスポンス:", data);
-  
-      // コンソール出力を更新
-      setConsoleOutput(data.output || "✅ コードが実行されましたが、出力がありません。");
-  
-      return data.output || "✅ コードが実行されましたが、出力がありません。";
+      setConsoleOutput(output);
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === "AbortError") {
-          setConsoleOutput("⚠️ 実行がタイムアウトしました");
-          return "⚠️ 実行がタイムアウトしました";
-        }
-        console.debug("❌ リクエストエラー:", error);
-        setConsoleOutput("⚠️ サーバーに接続できませんでした");
-        return "⚠️ サーバーに接続できませんでした";
-      }
-  
-      console.debug("❌ 未知のエラー:", error);
-      setConsoleOutput("⚠️ 予期しないエラーが発生しました");
-      return "⚠️ 予期しないエラーが発生しました";
+      console.error("実行エラー:", error);
+      setConsoleOutput("⚠️ コードの実行中にエラーが発生しました");
     }
   };
-    
+
   const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [showNextButton, setShowNextButton] = useState<boolean>(false);
 
@@ -212,28 +184,29 @@ const TaskPage: React.FC = () => {
     }
   
     try {
-      // 🔹 テストケースの実行
+      // 🔹 コードを実行してコンソール出力を取得
+      await executeCode();
+      // 🔹 実行結果を少し待つ（API呼び出しのタイミングを考慮）
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // 🔹 テストケースの実行（コンソールの出力を考慮）
       const allTestsPassed = await validateTask(userCode, task.testCases);
   
       if (allTestsPassed) {
-        // 🔹 「正解！」のモーダルを表示
+        // 🎉 「正解！」のモーダルを表示
         setModalMessage("🎉 正解！おめでとうございます！");
-        setShowNextButton(true); // 次へ進むボタンを表示
-  
-        // 🔹 2秒後に自動で遷移（コメントアウトして手動ボタンに変更も可）
-        // setTimeout(() => moveToNextTask(), 2000);
+        setShowNextButton(true); // 「次へ進む」ボタンを表示
       } else {
         setModalMessage(
           `❌ 不正解です。\n\nコードを確認して、もう一度トライしてみてください！`
         );
-        setShowNextButton(false); // 不正解の場合は「次へ進む」ボタンを表示しない
+        setShowNextButton(false); // 不正解の場合は「次へ進む」ボタンを非表示
       }
     } catch (error) {
       console.error("コード検証エラー:", error);
       alert("コードの検証中にエラーが発生しました。");
     }
   };
-  
+    
   // 🔹 次のタスクへ遷移する関数
   const moveToNextTask = async () => {
     if (!task || !userId) return;
@@ -286,6 +259,12 @@ const TaskPage: React.FC = () => {
     console.log("Applied style content:", style.textContent);
   };
   
+  const normalizeNewlines = (str: string) =>
+    str.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  
+  const normalizeExpectedOutput = (str: string) =>
+    str.replace(/\\n/g, "\n").trim();
+
   const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
     let allTestsPassed = true;
   
@@ -297,7 +276,7 @@ const TaskPage: React.FC = () => {
     const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
   
     if (!iframeDocument) {
-      console.error("iframe のドキュメントを取得できませんでした。");
+      console.debug("iframe のドキュメントを取得できませんでした。");
       return false;
     }
   
@@ -325,8 +304,8 @@ const TaskPage: React.FC = () => {
   
     // HTML / CSS のテストを実行
     for (const testCase of testCases) {
-      if (testCase.fileName === "script.js") {
-        // JS の場合はスキップ（後で別処理）
+      if (testCase.fileName === "script.js" || testCase.fileName === "index.php") {
+        // JavaScript & PHP の場合はスキップ（後で別処理）
         continue;
       }
   
@@ -336,7 +315,7 @@ const TaskPage: React.FC = () => {
       const element = iframeDocument.querySelector(input) as HTMLElement;
       if (!element) {
         console.error(`要素が見つかりません: ${input}`);
-        console.log("Available elements in iframe:", iframeDocument.body.innerHTML);
+        console.debug("Available elements in iframe:", iframeDocument.body.innerHTML);
         allTestsPassed = false;
         continue;
       }
@@ -361,41 +340,38 @@ const TaskPage: React.FC = () => {
       }
     }
   
-    // JavaScript の正誤判定を追加
-    if (userCode["script.js"]) {
-      const jsTestCases = testCases.filter((t) => t.fileName === "script.js");
-    
-      for (const testCase of jsTestCases) {
-        const expectedJsOutput = testCase.expectedOutput;
-    
-        // 改行コードのエスケープ処理
-        const normalizeNewlines = (str: string) =>
-          str.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
-    
-        // 各行の前後の空白を削除して統一
-        const normalizeWhitespace = (str: string) =>
-          str.split("\n").map(line => line.trim()).join("\n");
-    
-        // JavaScriptの出力を取得
-        const jsOutput = await executeJsCode(userCode["script.js"]);
-    
-        // 期待値と実際の出力を標準化
-        const normalizedJsOutput = jsOutput ? normalizeWhitespace(normalizeNewlines(jsOutput)) : null;
-        const normalizedExpectedOutput = expectedJsOutput ? normalizeWhitespace(normalizeNewlines(expectedJsOutput)) : null;
-    
-        // 結果をチェック
-        if (normalizedJsOutput === null || (normalizedExpectedOutput !== null && normalizedJsOutput !== normalizedExpectedOutput)) {
+    // PHP の正誤判定
+    for (const testCase of testCases) {
+      if (testCase.fileName === "index.php") {
+        const expectedPhpOutput = testCase.expectedOutput || "";
+
+        // 実際の PHP の出力を取得
+        const phpOutput = await executePhpCode(userCode["index.php"]);
+
+        // デバッグ: 出力内容を JSON で表示
+        console.debug("PHPの生出力:", JSON.stringify(phpOutput, null, 2));
+
+        // 期待値と実際の出力の改行を統一
+        const normalizedPhpOutput = normalizeNewlines(phpOutput);
+        const normalizedExpectedOutput = normalizeExpectedOutput(expectedPhpOutput);
+
+        console.debug("✅ 期待される出力:", JSON.stringify(normalizedExpectedOutput, null, 2));
+        console.debug("✅ 実際の出力:", JSON.stringify(normalizedPhpOutput, null, 2));
+
+        // 🔍 判定処理
+        if (normalizedPhpOutput !== normalizedExpectedOutput) {
+          console.debug(`❌ 期待された出力: ${normalizedExpectedOutput}, 実際の出力: ${normalizedPhpOutput}`);
           allTestsPassed = false;
         }
       }
     }
-      
     // iframe を削除
     document.body.removeChild(iframe);
   
     return allTestsPassed;
   };
-              
+  
+  // 色の比較用関数
   const compareColors = (computedValue: string, expectedValue: string): boolean => {
     const normalizeColor = (color: string): string => {
       const div = document.createElement("div");
@@ -408,7 +384,7 @@ const TaskPage: React.FC = () => {
   
     return normalizeColor(computedValue) === normalizeColor(expectedValue);
   };
-        
+          
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
