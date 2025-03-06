@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/firebase";
-import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Header } from "@/components/UI/Header";
 import Player from "@vimeo/player";
 import { updateProgress } from "@/utils/progressService";
+import { BackToCourse } from "@/components/UI/BackToCourse";
 
 interface ContentElement {
   id: string;
@@ -32,6 +41,8 @@ interface Content {
 export default function ContentPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentCourse = searchParams.get("current-course");
   const [content, setContent] = useState<Content | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -66,7 +77,10 @@ export default function ContentPage() {
         const docSnap = await getDoc(contentRef);
 
         if (docSnap.exists()) {
-          const fetchedContent = { id: contentId, ...docSnap.data() } as Content;
+          const fetchedContent = {
+            id: contentId,
+            ...docSnap.data(),
+          } as Content;
           setContent(fetchedContent);
         } else {
           console.error("指定されたコンテンツが見つかりませんでした。");
@@ -111,9 +125,11 @@ export default function ContentPage() {
 
         alert("コンテンツを完了しました！");
         if (nextContentType === "task") {
-          router.push(`/task/${nextContentId}`); // タスクページへ遷移
+          router.push(`/task/${nextContentId}?current-course=${currentCourse}`); // タスクページへ遷移
         } else if (nextContentType === "content") {
-          router.push(`/content/${nextContentId}`); // コンテンツページへ遷移
+          router.push(
+            `/content/${nextContentId}?current-course=${currentCourse}`
+          ); // コンテンツページへ遷移
         } else {
           console.error("不明なコンテンツタイプです:", nextContentType);
           router.push("/dashboard");
@@ -126,9 +142,11 @@ export default function ContentPage() {
       console.error("次のコンテンツへの移動に失敗しました", error);
     }
   };
-  
+
   const handleVideoReady = (elementId: string) => {
-    const iframe = document.getElementById(`video-${elementId}`) as HTMLIFrameElement;
+    const iframe = document.getElementById(
+      `video-${elementId}`
+    ) as HTMLIFrameElement;
     const player = new Player(iframe);
 
     player.on("ended", async () => {
@@ -146,16 +164,25 @@ export default function ContentPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (!content) {
-    return <div className="flex items-center justify-center min-h-screen">コンテンツが見つかりません</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        コンテンツが見つかりません
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 relative">
       <Header dashboardType="user" onToggleSidebar={() => {}} />
+      <BackToCourse currentCourse={currentCourse} />
       <div className="p-6 pt-24 max-w-4xl mx-auto bg-white rounded shadow-lg mt-4">
         <h1 className="text-3xl font-bold mb-4">{content.title}</h1>
         <div className="prose">
@@ -163,7 +190,9 @@ export default function ContentPage() {
             content.elements.map((element, index) => (
               <div key={element.id || index}>
                 {element.elementType === "text" && (
-                  <div dangerouslySetInnerHTML={{ __html: element.content || "" }} />
+                  <div
+                    dangerouslySetInnerHTML={{ __html: element.content || "" }}
+                  />
                 )}
                 {element.elementType === "video" && element.url && (
                   <div className="video-container mx-auto my-4">
@@ -207,7 +236,9 @@ export default function ContentPage() {
           <button
             onClick={handleComplete}
             className={`px-6 py-3 rounded ${
-              isComplete ? "bg-green-500 text-white hover:bg-green-600" : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              isComplete
+                ? "bg-green-500 text-white hover:bg-green-600"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
             }`}
             disabled={!isComplete}
           >
