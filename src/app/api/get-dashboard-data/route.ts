@@ -8,7 +8,15 @@ const courses = [
   { id: "bootstrap", title: "Bootstrap", description: "開発をより高速に進めることができるようになります。", image: "/Bootstrap.svg" },
   { id: "javascript", title: "JavaScript", description: "画面に動きをつけたり、サーバーと情報を送信することができるようになります。", image: "/JavaScript.svg" },
   { id: "php", title: "PHP", description: "オンラインショップ機能を実装したWebサイトを開発できるようになります。", image: "/PHP.svg" },
+  { id: "cs1", title: "CS初級", description: "データと関数について理解を深め、コンピュータを扱うためのスキルを身につけていきます。", image: "/cs1.svg" },
+  { id: "cs2", title: "CS中級", description: "抽象化、再帰、スコープ、制御フロー、オブジェクト、リストについて学習します。", image: "/cs2.svg" },
+  { id: "cs3", title: "CS上級", description: "連結リスト、スタック、キュー、木構造、ソフトウェアテストについて学習します。", image: "/cs3.svg" },
   { id: "database", title: "Database", description: "データベースについて理解を深め、効率的なデータ管理を行う方法を学んでいきます。", image: "/DataBase.svg" },
+  { id: "git", title: "Git", description: "Gitの基本的な仕組みを学習します。コマンド、ファイルの状態、ブランチについて学習していきます。", image: "/git.svg" },
+  { id: "oop", title: "オブジェクト指向", description: "カプセル化、継承、ポリモーフィズム等について詳しく学習していきます。", image: "/oop.svg" },
+  { id: "blog", title: "ブログシステム", description: "このコースでは、ブログシステムを開発することで、WEBアプリケーションの基本的なCRUD操作を学びます。", image: "/blog.svg" },
+  { id: "task", title: "タスク管理アプリ", description: "このコースでは、タスク管理アプリケーションを開発することで、Laravelフレームワークの基本的なMVCアーキテクチャとルーティングについて学びます。", image: "/task.svg" },
+  { id: "auth", title: "認証機能付きAPI", description: "このコースでは、認証機能付きAPIを開発することで信頼性が高く、安全なAPIを開発するための基盤を築くことができます。", image: "/auth.svg" },
 ];
 
 export async function GET(req: Request) {
