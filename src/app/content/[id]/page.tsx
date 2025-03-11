@@ -4,30 +4,21 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/firebase";
-import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { Header } from "@/components/UI/Header";
 import Player from "@vimeo/player";
 import { updateProgress } from "@/utils/progressService";
-
-interface ContentElement {
-  id: string;
-  elementType: "text" | "video" | "image" | "code";
-  content?: string;
-  url?: string;
-  caption?: string;
-  style?: React.CSSProperties;
-  width?: number;
-  height?: number;
-}
-
-interface Content {
-  id: string;
-  title: string;
-  stepOrder: number;
-  type: string;
-  elements?: ContentElement[];
-}
+import type { Content } from "types";
+import ContentsSidebar from "@/components/ContentsSidebar";
 
 export default function ContentPage() {
   const params = useParams();
@@ -37,6 +28,7 @@ export default function ContentPage() {
   const [isComplete, setIsComplete] = useState(false);
   const [hasWatched, setHasWatched] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [allContents, setAllContents] = useState<Content[]>([]);
 
   const contentId = Array.isArray(params?.id) ? params.id[0] : params.id;
 
@@ -59,15 +51,28 @@ export default function ContentPage() {
   useEffect(() => {
     if (!contentId || !userId) return; // ローディング中は処理をスキップ
 
-    const fetchContent = async () => {
+    const fetchContents = async () => {
       try {
         // コンテンツ取得
         const contentRef = doc(db, "contents", contentId);
         const docSnap = await getDoc(contentRef);
 
         if (docSnap.exists()) {
-          const fetchedContent = { id: contentId, ...docSnap.data() } as Content;
+          const fetchedContent = {
+            id: contentId,
+            ...docSnap.data(),
+          } as Content;
           setContent(fetchedContent);
+
+          // 全コンテンツ取得を追加
+          const contentsQuery = query(collection(db, "contents"));
+          const contentsSnap = await getDocs(contentsQuery);
+          const fetchedContents = contentsSnap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Content[];
+
+          setAllContents(fetchedContents);
         } else {
           console.error("指定されたコンテンツが見つかりませんでした。");
         }
@@ -88,7 +93,7 @@ export default function ContentPage() {
       }
     };
 
-    fetchContent();
+    fetchContents();
   }, [contentId, userId]);
 
   const handleComplete = async () => {
@@ -126,9 +131,11 @@ export default function ContentPage() {
       console.error("次のコンテンツへの移動に失敗しました", error);
     }
   };
-  
+
   const handleVideoReady = (elementId: string) => {
-    const iframe = document.getElementById(`video-${elementId}`) as HTMLIFrameElement;
+    const iframe = document.getElementById(
+      `video-${elementId}`
+    ) as HTMLIFrameElement;
     const player = new Player(iframe);
 
     player.on("ended", async () => {
@@ -146,11 +153,19 @@ export default function ContentPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (!content) {
-    return <div className="flex items-center justify-center min-h-screen">コンテンツが見つかりません</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        コンテンツが見つかりません
+      </div>
+    );
   }
 
   return (
@@ -163,7 +178,9 @@ export default function ContentPage() {
             content.elements.map((element, index) => (
               <div key={element.id || index}>
                 {element.elementType === "text" && (
-                  <div dangerouslySetInnerHTML={{ __html: element.content || "" }} />
+                  <div
+                    dangerouslySetInnerHTML={{ __html: element.content || "" }}
+                  />
                 )}
                 {element.elementType === "video" && element.url && (
                   <div className="video-container mx-auto my-4">
@@ -207,12 +224,15 @@ export default function ContentPage() {
           <button
             onClick={handleComplete}
             className={`px-6 py-3 rounded ${
-              isComplete ? "bg-green-500 text-white hover:bg-green-600" : "bg-gray-300 text-gray-600 cursor-not-allowed"
+              isComplete
+                ? "bg-green-500 text-white hover:bg-green-600"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
             }`}
             disabled={!isComplete}
           >
             学習完了
           </button>
+          <ContentsSidebar contents={allContents} currentId={contentId} />
         </div>
       </div>
     </div>

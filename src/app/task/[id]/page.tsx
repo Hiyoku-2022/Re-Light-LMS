@@ -16,9 +16,11 @@ import {
   limit,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import type { Content } from "types";
 import { Header } from "@/components/UI/Header";
 import { executeJsCode } from "@/utils/executors/executeJs";
 import { executePhpCode } from "@/utils/executors/executePhp";
+import ContentsSidebar from "@/components/ContentsSidebar";
 
 interface TaskData {
   title: string;
@@ -50,9 +52,13 @@ const TaskPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [tab, setTab] = useState<"problem" | "preview">("problem");
-  const [previewTab, setPreviewTab] = useState<"sample" | "user">("sample"); 
+  const [previewTab, setPreviewTab] = useState<"sample" | "user">("sample");
   const [editorLanguage, setEditorLanguage] = useState<string>("plaintext");
-  
+  const [content, setContent] = useState<Content | null>(null);
+  const [allContents, setAllContents] = useState<Content[]>([]);
+
+  const contentId = id;
+
   useEffect(() => {
     // 認証状態の監視
     const auth = getAuth();
@@ -115,6 +121,42 @@ const TaskPage: React.FC = () => {
     setEditorLanguage(getLanguageFromFilename(currentFile));
   }, [currentFile]);
 
+  useEffect(() => {
+    if (!contentId || !userId) return; // ローディング中は処理をスキップ
+
+    const fetchContents = async () => {
+      try {
+        // コンテンツ取得
+        const contentRef = doc(db, "contents", contentId);
+        const docSnap = await getDoc(contentRef);
+
+        if (docSnap.exists()) {
+          const fetchedContent = {
+            id: contentId,
+            ...docSnap.data(),
+          } as Content;
+          setContent(fetchedContent);
+
+          // 全コンテンツ取得を追加
+          const contentsQuery = query(collection(db, "contents"));
+          const contentsSnap = await getDocs(contentsQuery);
+          const fetchedContents = contentsSnap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Content[];
+
+          setAllContents(fetchedContents);
+        } else {
+          console.error("指定されたコンテンツが見つかりませんでした。");
+        }
+      } catch (error) {
+        console.error("データの取得に失敗しました", error);
+      }
+    };
+
+    fetchContents();
+  }, [contentId, userId]);
+
   const handleFileTabClick = (fileName: string) => {
     setCurrentFile(fileName);
   };
@@ -127,7 +169,7 @@ const TaskPage: React.FC = () => {
     if (filename.endsWith(".html")) return "html";
     return "plaintext"; // その他のファイルはプレーンテキストとして扱う
   };
-  
+
   const generateUserPreview = (): string => {
     const html = userCode["index.html"] || "";
     const css = userCode["style.css"] || "";
@@ -182,7 +224,7 @@ const TaskPage: React.FC = () => {
       alert("タスクまたはユーザー情報が見つかりません。");
       return;
     }
-  
+
     try {
       // 🔹 コードを実行してコンソール出力を取得
       await executeCode();
@@ -190,7 +232,7 @@ const TaskPage: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 500));
       // 🔹 テストケースの実行（コンソールの出力を考慮）
       const allTestsPassed = await validateTask(userCode, task.testCases);
-  
+
       if (allTestsPassed) {
         // 🎉 「正解！」のモーダルを表示
         setModalMessage("🎉 正解！おめでとうございます！");
@@ -206,31 +248,31 @@ const TaskPage: React.FC = () => {
       alert("コードの検証中にエラーが発生しました。");
     }
   };
-    
+
   // 🔹 次のタスクへ遷移する関数
   const moveToNextTask = async () => {
     if (!task || !userId) return;
-  
+
     try {
       const progressRef = doc(db, "progress", `${userId}_${id}`);
       await updateDoc(progressRef, {
         isCompleted: true,
         completedAt: Timestamp.now(),
       });
-  
+
       const nextOrder = task.stepOrder + 1;
       const nextContentQuery = query(
         collection(db, "contents"),
         where("stepOrder", "==", nextOrder),
         limit(1)
       );
-  
+
       const querySnapshot = await getDocs(nextContentQuery);
       if (!querySnapshot.empty) {
         const nextContent = querySnapshot.docs[0];
         const nextContentId = nextContent.id;
         const nextContentType = nextContent.data().type;
-  
+
         if (nextContentType === "task") {
           router.push(`/task/${nextContentId}`);
         } else if (nextContentType === "content") {
@@ -247,8 +289,11 @@ const TaskPage: React.FC = () => {
       console.error("次のタスクへの遷移エラー:", error);
     }
   };
-    
-  const applyStyleToContainer = (container: HTMLElement, styleContent: string): void => {
+
+  const applyStyleToContainer = (
+    container: HTMLElement,
+    styleContent: string
+  ): void => {
     let style = container.querySelector("style#user-style");
     if (!style) {
       style = document.createElement("style");
@@ -258,33 +303,40 @@ const TaskPage: React.FC = () => {
     style.textContent = styleContent;
     console.log("Applied style content:", style.textContent);
   };
-  
+
   const normalizeNewlines = (str: string) =>
     str.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
-  
+
   const normalizeExpectedOutput = (str: string) =>
     str.replace(/\\n/g, "\n").trim();
 
-  const validateTask = async (userCode: Record<string, string>, testCases: TestCase[]): Promise<boolean> => {
+  const validateTask = async (
+    userCode: Record<string, string>,
+    testCases: TestCase[]
+  ): Promise<boolean> => {
     let allTestsPassed = true;
-  
+
     // HTML & CSS の正誤判定（既存の判定を維持）
     const iframe = document.createElement("iframe");
     iframe.style.position = "absolute";
     iframe.style.left = "-9999px"; // 見えない位置に配置
     document.body.appendChild(iframe);
-    const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
-  
+    const iframeDocument =
+      iframe.contentDocument || iframe.contentWindow?.document;
+
     if (!iframeDocument) {
       console.debug("iframe のドキュメントを取得できませんでした。");
       return false;
     }
-  
+
     // HTML をパース
     const parser = new DOMParser();
-    const parsedHTML = parser.parseFromString(userCode["index.html"] || "", "text/html");
+    const parsedHTML = parser.parseFromString(
+      userCode["index.html"] || "",
+      "text/html"
+    );
     const bodyContent = parsedHTML.body.innerHTML;
-  
+
     // iframe に HTML & CSS を埋め込む
     iframeDocument.open();
     iframeDocument.write(`
@@ -299,36 +351,45 @@ const TaskPage: React.FC = () => {
       </html>
     `);
     iframeDocument.close();
-  
+
     await new Promise((resolve) => setTimeout(resolve, 100));
-  
+
     // HTML / CSS のテストを実行
     for (const testCase of testCases) {
-      if (testCase.fileName === "script.js" || testCase.fileName === "index.php") {
+      if (
+        testCase.fileName === "script.js" ||
+        testCase.fileName === "index.php"
+      ) {
         // JavaScript & PHP の場合はスキップ（後で別処理）
         continue;
       }
-  
+
       const { input, expectedStyle } = testCase;
       if (!input) continue; // 空のセレクタはスキップ
-  
+
       const element = iframeDocument.querySelector(input) as HTMLElement;
       if (!element) {
         console.error(`要素が見つかりません: ${input}`);
-        console.debug("Available elements in iframe:", iframeDocument.body.innerHTML);
+        console.debug(
+          "Available elements in iframe:",
+          iframeDocument.body.innerHTML
+        );
         allTestsPassed = false;
         continue;
       }
-  
+
       if (expectedStyle) {
-        const computedStyle = iframeDocument.defaultView?.getComputedStyle(element);
-        const computedStyleMatches = Object.entries(expectedStyle).every(([key, value]) => {
-          const computedValue = computedStyle?.getPropertyValue(key);
-          return key === "color" || key === "background-color"
-            ? compareColors(computedValue || "", value)
-            : computedValue === value;
-        });
-  
+        const computedStyle =
+          iframeDocument.defaultView?.getComputedStyle(element);
+        const computedStyleMatches = Object.entries(expectedStyle).every(
+          ([key, value]) => {
+            const computedValue = computedStyle?.getPropertyValue(key);
+            return key === "color" || key === "background-color"
+              ? compareColors(computedValue || "", value)
+              : computedValue === value;
+          }
+        );
+
         if (!computedStyleMatches) {
           console.error("スタイルが一致しません:", {
             input,
@@ -339,7 +400,7 @@ const TaskPage: React.FC = () => {
         }
       }
     }
-  
+
     // PHP の正誤判定
     for (const testCase of testCases) {
       if (testCase.fileName === "index.php") {
@@ -353,26 +414,38 @@ const TaskPage: React.FC = () => {
 
         // 期待値と実際の出力の改行を統一
         const normalizedPhpOutput = normalizeNewlines(phpOutput);
-        const normalizedExpectedOutput = normalizeExpectedOutput(expectedPhpOutput);
+        const normalizedExpectedOutput =
+          normalizeExpectedOutput(expectedPhpOutput);
 
-        console.debug("✅ 期待される出力:", JSON.stringify(normalizedExpectedOutput, null, 2));
-        console.debug("✅ 実際の出力:", JSON.stringify(normalizedPhpOutput, null, 2));
+        console.debug(
+          "✅ 期待される出力:",
+          JSON.stringify(normalizedExpectedOutput, null, 2)
+        );
+        console.debug(
+          "✅ 実際の出力:",
+          JSON.stringify(normalizedPhpOutput, null, 2)
+        );
 
         // 🔍 判定処理
         if (normalizedPhpOutput !== normalizedExpectedOutput) {
-          console.debug(`❌ 期待された出力: ${normalizedExpectedOutput}, 実際の出力: ${normalizedPhpOutput}`);
+          console.debug(
+            `❌ 期待された出力: ${normalizedExpectedOutput}, 実際の出力: ${normalizedPhpOutput}`
+          );
           allTestsPassed = false;
         }
       }
     }
     // iframe を削除
     document.body.removeChild(iframe);
-  
+
     return allTestsPassed;
   };
-  
+
   // 色の比較用関数
-  const compareColors = (computedValue: string, expectedValue: string): boolean => {
+  const compareColors = (
+    computedValue: string,
+    expectedValue: string
+  ): boolean => {
     const normalizeColor = (color: string): string => {
       const div = document.createElement("div");
       div.style.color = color;
@@ -381,129 +454,156 @@ const TaskPage: React.FC = () => {
       document.body.removeChild(div);
       return rgbColor;
     };
-  
+
     return normalizeColor(computedValue) === normalizeColor(expectedValue);
   };
-          
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
 
   if (!task) {
-    return <div className="flex items-center justify-center min-h-screen">タスクが見つかりません</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        タスクが見つかりません
+      </div>
+    );
   }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
       <Header dashboardType="user" onToggleSidebar={() => {}} />
       <div className="flex flex-1 overflow-hidden pt-16 pb-16">
-      {/* 左サイドバー */}
-      <div className="w-1/2 bg-white border-r flex flex-col h-full overflow-hidden">
-        <div className="tabs flex justify-center border-b bg-gray-50">
-          <button
-            className={`flex-1 p-4 ${
-              tab === "problem" ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
-            }`}
-            onClick={() => setTab("problem")}
-          >
-            問題
-          </button>
-          <button
-            className={`flex-1 p-4 ${
-              tab === "preview" ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
-            }`}
-            onClick={() => setTab("preview")}
-          >
-            プレビュー
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {tab === "problem" && (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">問題に挑戦！</h2>
-              <pre className="bg-gray-100 p-4 rounded-md whitespace-pre-wrap">
-                {task.taskText}
-              </pre>
-            </div>
-          )}
-          {tab === "preview" && (
-            <div>
-              <h2 className="text-lg font-semibold mb-2">プレビュー</h2>
-              <div className="tabs flex justify-center border-b bg-gray-50 mb-4">
-                <button
-                  className={`flex-1 p-2 ${
-                    previewTab === "sample" ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
-                  }`}
-                  onClick={() => setPreviewTab("sample")}
-                >
-                  サンプルプレビュー
-                </button>
-                <button
-                  className={`flex-1 p-2 ${
-                    previewTab === "user" ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
-                  }`}
-                  onClick={() => setPreviewTab("user")}
-                >
-                  ユーザープレビュー
-                </button>
+        {/* 左サイドバー */}
+        <div className="w-1/2 bg-white border-r flex flex-col h-full overflow-hidden">
+          <div className="tabs flex justify-center border-b bg-gray-50">
+            <button
+              className={`flex-1 p-4 ${
+                tab === "problem"
+                  ? "border-b-2 border-blue-500 text-blue-500 font-bold"
+                  : ""
+              }`}
+              onClick={() => setTab("problem")}
+            >
+              問題
+            </button>
+            <button
+              className={`flex-1 p-4 ${
+                tab === "preview"
+                  ? "border-b-2 border-blue-500 text-blue-500 font-bold"
+                  : ""
+              }`}
+              onClick={() => setTab("preview")}
+            >
+              プレビュー
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {tab === "problem" && (
+              <div>
+                <h2 className="text-lg font-semibold mb-2">問題に挑戦！</h2>
+                <pre className="bg-gray-100 p-4 rounded-md whitespace-pre-wrap">
+                  {task.taskText}
+                </pre>
               </div>
-              {previewTab === "sample" && task.previewCode ? (
-                <iframe src={task.previewCode} className="w-full h-96 border rounded" title="サンプルプレビュー" />
-              ) : (
-                <iframe srcDoc={generateUserPreview()} className="w-full h-96 border rounded" title="ユーザープレビュー" />
-              )}
-            </div>
-          )}
+            )}
+            {tab === "preview" && (
+              <div>
+                <h2 className="text-lg font-semibold mb-2">プレビュー</h2>
+                <div className="tabs flex justify-center border-b bg-gray-50 mb-4">
+                  <button
+                    className={`flex-1 p-2 ${
+                      previewTab === "sample"
+                        ? "border-b-2 border-blue-500 text-blue-500 font-bold"
+                        : ""
+                    }`}
+                    onClick={() => setPreviewTab("sample")}
+                  >
+                    サンプルプレビュー
+                  </button>
+                  <button
+                    className={`flex-1 p-2 ${
+                      previewTab === "user"
+                        ? "border-b-2 border-blue-500 text-blue-500 font-bold"
+                        : ""
+                    }`}
+                    onClick={() => setPreviewTab("user")}
+                  >
+                    ユーザープレビュー
+                  </button>
+                </div>
+                {previewTab === "sample" && task.previewCode ? (
+                  <iframe
+                    src={task.previewCode}
+                    className="w-full h-96 border rounded"
+                    title="サンプルプレビュー"
+                  />
+                ) : (
+                  <iframe
+                    srcDoc={generateUserPreview()}
+                    className="w-full h-96 border rounded"
+                    title="ユーザープレビュー"
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
         {/* 右エディター */}
         <div className="w-1/2 flex flex-col bg-white h-full pb-8">
-        {/* ファイルタブ */}
-        <div className="tabs flex border-b bg-gray-50">
+          {/* ファイルタブ */}
+          <div className="tabs flex border-b bg-gray-50">
             {Object.keys(userCode).map((fileName) => (
-            <button
+              <button
                 key={fileName}
                 className={`flex-1 p-4 ${
-                currentFile === fileName ? "border-b-2 border-blue-500 text-blue-500 font-bold" : ""
+                  currentFile === fileName
+                    ? "border-b-2 border-blue-500 text-blue-500 font-bold"
+                    : ""
                 }`}
                 onClick={() => handleFileTabClick(fileName)}
-            >
+              >
                 {fileName}
-            </button>
+              </button>
             ))}
-        </div>
+          </div>
 
-        {/* コードエディターエリア */}
-        <div className="flex-1 px-2 overflow-hidden">
-            <h2 className="text-lg font-semibold mb-2">コードエディタ: {currentFile}</h2>
+          {/* コードエディターエリア */}
+          <div className="flex-1 px-2 overflow-hidden">
+            <h2 className="text-lg font-semibold mb-2">
+              コードエディタ: {currentFile}
+            </h2>
             <MonacoEditor
-            height="calc(100% - 50px)"
-            language={editorLanguage}
-            value={userCode[currentFile || ""]}
-            onChange={handleCodeChange}
-            onMount={handleEditorDidMount}
-            options={{
+              height="calc(100% - 50px)"
+              language={editorLanguage}
+              value={userCode[currentFile || ""]}
+              onChange={handleCodeChange}
+              onMount={handleEditorDidMount}
+              options={{
                 minimap: { enabled: false },
                 fontSize: 14,
-            }}
+              }}
             />
-        </div>
+          </div>
 
-        {/* コンソール出力エリア */}
-        <div className="px-2"> 
+          {/* コンソール出力エリア */}
+          <div className="px-2">
             <p className="text-sm font-semibold text-gray-600">コンソール</p>
             <div className="bg-gray-900 text-white p-2 h-28 overflow-auto rounded-lg">
-            <pre className="text-sm whitespace-pre-wrap">{consoleOutput}</pre>
+              <pre className="text-sm whitespace-pre-wrap">{consoleOutput}</pre>
             </div>
-        </div>
+          </div>
         </div>
       </div>
 
       <footer className="fixed bottom-0 left-0 right-0 bg-white shadow-lg py-4 px-8 flex justify-between items-center">
-        <div className="flex gap-4">
-          <button className="px-4 py-2 bg-gray-100 text-gray-800 rounded-md shadow">レッスン一覧</button>
-        </div>
+        <div className="flex gap-4"></div>
+
         <div className="flex gap-4">
           <button
             onClick={handleSubmit}
@@ -513,30 +613,33 @@ const TaskPage: React.FC = () => {
           </button>
         </div>
       </footer>
+      <ContentsSidebar contents={allContents} currentId={contentId} />
       {modalMessage && (
-        <div 
+        <div
           className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50"
           onClick={() => setModalMessage(null)}
         >
-          <div 
+          <div
             className="bg-white p-6 rounded-lg shadow-lg relative text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
+            <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
               onClick={() => setModalMessage(null)}
             >
               ✕
             </button>
-            <p style={{ 
-                whiteSpace: "pre-line", 
-                textAlign: "center", 
-                fontSize: "18px", 
-                lineHeight: "1.6"
-            }}>
-                {modalMessage}
+            <p
+              style={{
+                whiteSpace: "pre-line",
+                textAlign: "center",
+                fontSize: "18px",
+                lineHeight: "1.6",
+              }}
+            >
+              {modalMessage}
             </p>
-            
+
             {showNextButton && (
               <button
                 onClick={moveToNextTask}
