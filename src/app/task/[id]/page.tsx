@@ -401,6 +401,27 @@ const TaskPage: React.FC = () => {
       }
     }
 
+    // Js の正誤判定
+    for (const testCase of testCases) {
+      if (testCase.fileName === "script.js") {
+        const expectedJsOutput = testCase.expectedOutput || "";
+        const jsOutput = await executeJsCode(userCode["script.js"]);
+    
+        const normalizedOutput = normalizeNewlines(jsOutput);
+        const normalizedExpected = normalizeExpectedOutput(expectedJsOutput);
+    
+        console.debug("JS 実行結果:", normalizedOutput);
+        console.debug("JS 期待値:", normalizedExpected);
+    
+        if (normalizedOutput !== normalizedExpected) {
+          allTestsPassed = false;
+          console.error(
+            `❌ JS: 期待された出力: ${normalizedExpected}, 実際の出力: ${normalizedOutput}`
+          );
+        }
+      }
+    }
+    
     // PHP の正誤判定
     for (const testCase of testCases) {
       if (testCase.fileName === "index.php") {
