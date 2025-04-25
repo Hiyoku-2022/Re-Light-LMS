@@ -56,6 +56,7 @@ jobs:
           echo "FIREBASE_PRIVATE_KEY=\"$(echo ${{ secrets.STAGING_FIREBASE_PRIVATE_KEY }} | base64 --decode)\"" >> .env.staging
           echo "NEXT_PUBLIC_JS_EXECUTOR_API=${{ secrets.STAGING_NEXT_PUBLIC_JS_EXECUTOR_API }}" >> .env.staging
           echo "NEXT_PUBLIC_PHP_EXECUTOR_API=${{ secrets.STAGING_NEXT_PUBLIC_PHP_EXECUTOR_API }}" >> .env.staging
+          echo "NEXT_PUBLIC_OPENAI_API_KEY=${{ secrets.STAGING_NEXT_PUBLIC_OPENAI_API_KEY }}" >> .env.staging
 
       - name: Authenticate with GCP
         run: |

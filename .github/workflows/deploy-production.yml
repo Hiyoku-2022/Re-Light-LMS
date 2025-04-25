@@ -31,6 +31,7 @@ jobs:
           echo "FIREBASE_PRIVATE_KEY=\"$(echo ${{ secrets.PRODUCTION_FIREBASE_PRIVATE_KEY }} | base64 --decode)\"" >> .env.production
           echo "NEXT_PUBLIC_JS_EXECUTOR_API=${{ secrets.PRODUCTION_NEXT_PUBLIC_JS_EXECUTOR_API }}" >> .env.production
           echo "NEXT_PUBLIC_PHP_EXECUTOR_API=${{ secrets.PRODUCTION_NEXT_PUBLIC_PHP_EXECUTOR_API }}" >> .env.production
+          echo "NEXT_PUBLIC_OPENAI_API_KEY=${{ secrets.PRODUCTION_NEXT_PUBLIC_OPENAI_API_KEY }}" >> .env.production
           
       - name: Authenticate with GCP
         run: |
