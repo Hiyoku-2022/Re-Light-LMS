@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/firebase";
 import {
   doc,
@@ -249,7 +249,15 @@ const TaskPage: React.FC = () => {
     }
   };
 
-  // 🔹 次のタスクへ遷移する関数
+  const searchParams  = useSearchParams();
+  const currentCourse = searchParams.get("current-course") ?? "";
+
+  const buildNextHref = (base: string) =>
+    currentCourse
+      ? `${base}?current-course=${encodeURIComponent(currentCourse)}`
+      : base;
+
+  // 次のタスクへ遷移する関数
   const moveToNextTask = async () => {
     if (!task || !userId) return;
 
@@ -274,9 +282,9 @@ const TaskPage: React.FC = () => {
         const nextContentType = nextContent.data().type;
 
         if (nextContentType === "task") {
-          router.push(`/task/${nextContentId}`);
+          router.push(buildNextHref(`/task/${nextContentId}`));
         } else if (nextContentType === "content") {
-          router.push(`/content/${nextContentId}`);
+          router.push(buildNextHref(`/content/${nextContentId}`));
         } else {
           console.error("不明なコンテンツタイプです:", nextContentType);
           router.push("/dashboard");

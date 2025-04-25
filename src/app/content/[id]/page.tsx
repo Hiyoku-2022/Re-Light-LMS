@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/firebase";
 import {
   doc,
@@ -19,6 +19,7 @@ import Player from "@vimeo/player";
 import { updateProgress } from "@/utils/progressService";
 import type { Content } from "types";
 import ContentsSidebar from "@/components/ContentsSidebar";
+import ChatComponent from '@/components/AIChat';
 
 export default function ContentPage() {
   const params = useParams();
@@ -96,9 +97,17 @@ export default function ContentPage() {
     fetchContents();
   }, [contentId, userId]);
 
+  const searchParams  = useSearchParams();
+  const currentCourse = searchParams.get("current-course") ?? "";
+
+  const buildNextHref = (base: string) =>
+    currentCourse
+      ? `${base}?current-course=${encodeURIComponent(currentCourse)}`
+      : base;
+
   const handleComplete = async () => {
     if (!content || !userId) return;
-
+  
     try {
       const nextOrder = content.stepOrder + 1;
       const nextContentQuery = query(
@@ -106,19 +115,19 @@ export default function ContentPage() {
         where("stepOrder", "==", nextOrder),
         limit(1)
       );
-
+  
       const querySnapshot = await getDocs(nextContentQuery);
       if (!querySnapshot.empty) {
-        const nextContent = querySnapshot.docs[0];
-        const nextContentData = nextContent.data();
-        const nextContentId = nextContent.id;
-        const nextContentType = nextContentData.type;
-
+        const nextContent     = querySnapshot.docs[0];
+        const nextContentId   = nextContent.id;
+        const nextContentType = nextContent.data().type;
+  
         alert("コンテンツを完了しました！");
+  
         if (nextContentType === "task") {
-          router.push(`/task/${nextContentId}`); // タスクページへ遷移
+          router.push(buildNextHref(`/task/${nextContentId}`));
         } else if (nextContentType === "content") {
-          router.push(`/content/${nextContentId}`); // コンテンツページへ遷移
+          router.push(buildNextHref(`/content/${nextContentId}`));
         } else {
           console.error("不明なコンテンツタイプです:", nextContentType);
           router.push("/dashboard");

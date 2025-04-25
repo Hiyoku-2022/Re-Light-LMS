@@ -51,7 +51,7 @@ export default function ContentsSidebar({
       <div
         className={`fixed top-0 left-0 h-full w-64 bg-white z-50 transition-transform duration-300 transform ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } overflow-y-auto`}
       >
         <div className="p-5">
           <div className="flex justify-between items-center mb-4">
