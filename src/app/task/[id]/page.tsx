@@ -527,7 +527,7 @@ const TaskPage: React.FC = () => {
             {tab === "problem" && (
               <div>
                 <h2 className="text-lg font-semibold mb-2">問題に挑戦！</h2>
-                <pre className="bg-gray-100 p-4 rounded-md whitespace-pre-wrap">
+                <pre className="bg-gray-100 p-4 rounded-md whitespace-pre-wrap break-words">
                   {task.taskText}
                 </pre>
               </div>
